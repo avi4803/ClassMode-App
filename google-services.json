@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "157176932402",
+    "project_id": "classmode-5dfb8",
+    "storage_bucket": "classmode-5dfb8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:157176932402:android:014523abcc00b77628b42b",
+        "android_client_info": {
+          "package_name": "com.avi_0408.classmode"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAl2-p6bapLmQIf8a4BXzeIfX5AlAhzVyk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
