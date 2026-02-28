@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, TextInput, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import { View, Text, ScrollView, TextInput, StyleSheet, TouchableOpacity, Alert, DeviceEventEmitter } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "../../src/hooks/useTheme";
@@ -128,6 +128,7 @@ export default function EditClassScreen() {
         
         const res = await authService.addExtraClass(userToken, payload);
         if(res.success) {
+            DeviceEventEmitter.emit('REFRESH_DATA');
             Alert.alert("Success", "Extra class added successfully", [{ text: "OK", onPress: () => router.back() }]);
         } else {
              Alert.alert("Error", res.message || "Failed to add class");
@@ -146,6 +147,7 @@ export default function EditClassScreen() {
          const res = await authService.rescheduleClass(userToken, classId, payload);
          
          if (res.success) {
+            DeviceEventEmitter.emit('REFRESH_DATA');
             Alert.alert("Success", "Class rescheduled successfully", [{ text: "OK", onPress: () => router.back() }]);
          } else {
             Alert.alert("Error", res.message || "Failed to reschedule class");
@@ -169,6 +171,7 @@ export default function EditClassScreen() {
       if (classId) {
         const res = await authService.cancelClass(userToken, classId, "Faculty is on leave");
         if (res.success) {
+          DeviceEventEmitter.emit('REFRESH_DATA');
           Alert.alert("Success", "Class cancelled successfully", [{ text: "OK", onPress: () => router.back() }]);
         }
       } else {

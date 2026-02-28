@@ -19,7 +19,7 @@ const getBaseUrl = () => {
   return 'http://10.0.1.33:3000/api/v1';
 };
 
-const BASE_URL = "http://3.6.224.83:3000/api/v1";
+const BASE_URL = "http://10.0.1.196:3000/api/v1";
 // "http://3.6.224.83:3000/api/v1"
 //  "https://negligently-multisulcated-kazuko.ngrok-free.dev/api/v1";
 // "https://negligently-multisulcated-kazuko.ngrok-free.dev/api/v1";

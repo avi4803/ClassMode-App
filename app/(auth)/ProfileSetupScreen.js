@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, Modal, TextInput, Pressable } from 'react-native';
 import { MaterialIcons } from "@expo/vector-icons";
 
 import ScreenWrapper from '../../src/components/common/ScreenWrapper';
@@ -11,6 +11,50 @@ import OverlayBackButton from '../../src/components/common/BackNavigationButton'
 import { router, useLocalSearchParams } from 'expo-router';
 import authService from '../../src/services/authService';
 
+// Simple Prompt Modal for Android/iOS compatibility
+const CustomPrompt = ({ visible, title, placeholder, onCancel, onSubmit, colors }) => {
+  const [text, setText] = useState('');
+  useEffect(() => { if (visible) setText(''); }, [visible]);
+
+  if (!visible) return null;
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={stylesPrompt.overlay}>
+        <View style={[stylesPrompt.box, { backgroundColor: colors.surface }]}>
+          <Text style={[stylesPrompt.title, { color: colors.textMain }]}>{title}</Text>
+          <TextInput
+            style={[stylesPrompt.input, { borderColor: colors.inputBorder, color: colors.textMain, backgroundColor: colors.inputBg }]}
+            placeholder={placeholder}
+            placeholderTextColor={colors.placeholder}
+            value={text}
+            onChangeText={setText}
+            autoFocus
+          />
+          <View style={stylesPrompt.buttons}>
+            <Pressable style={stylesPrompt.btn} onPress={onCancel}>
+              <Text style={[stylesPrompt.btnText, { color: colors.textSecondary }]}>Cancel</Text>
+            </Pressable>
+            <Pressable style={stylesPrompt.btn} onPress={() => onSubmit(text)}>
+              <Text style={[stylesPrompt.btnText, { color: colors.primary }]}>Add</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const stylesPrompt = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 24 },
+  box: { borderRadius: 16, padding: 20 },
+  title: { fontSize: 18, fontWeight: '600', marginBottom: 16 },
+  input: { borderWidth: 1, borderRadius: 12, padding: 12, fontSize: 16, marginBottom: 20 },
+  buttons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 16 },
+  btn: { padding: 8 },
+  btnText: { fontSize: 16, fontWeight: '600' }
+});
+
+
 const ProfileSetupScreen = () => {
   const { colors } = useTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
@@ -21,18 +65,20 @@ const ProfileSetupScreen = () => {
   const [batches, setBatches] = useState([]);
   const [sections, setSections] = useState([]);
 
+  // Prompt States
+  const [promptConfig, setPromptConfig] = useState({ visible: false, type: '', title: '', placeholder: '' });
+
   // Form State
   const [form, setForm] = useState({
     collegeId: '',
-    batch: '',   // Stores Batch ID now
-    section: '', // Stores Section ID now
+    batch: '',   
+    section: '', 
   });
   
   // Loading States
   const [isLoading, setIsLoading] = useState(false);
-  // const [isCollegesLoading, setIsCollegesLoading] = useState(true); // Unused for now
 
-  // 1. Fetch Colleges on Mount
+  // 1. Fetch Colleges
   useEffect(() => {
     fetchColleges();
   }, []);
@@ -48,12 +94,12 @@ const ProfileSetupScreen = () => {
 
   // 2. Fetch Batches when College Changes
   useEffect(() => {
-    if (form.collegeId) {
+    // If it's a locally added custom college, it won't have batches from server
+    if (form.collegeId && !form.collegeId.startsWith('custom_')) {
       fetchBatches(form.collegeId);
     } else {
       setBatches([]);
     }
-    // Reset dependency fields
     setForm(prev => ({ ...prev, batch: '', section: '' }));
   }, [form.collegeId]);
 
@@ -63,18 +109,16 @@ const ProfileSetupScreen = () => {
       if (response.success) setBatches(response.data);
     } catch (error) {
       console.log('Fetch Batches Error', error);
-      // Optional: Alert or silent fail
     }
   };
 
   // 3. Fetch Sections when Batch Changes
   useEffect(() => {
-    if (form.batch) {
+    if (form.batch && !form.batch.startsWith('custom_')) {
       fetchSections(form.batch);
     } else {
       setSections([]);
     }
-    // Reset dependency fields
     setForm(prev => ({ ...prev, section: '' }));
   }, [form.batch]);
 
@@ -87,34 +131,76 @@ const ProfileSetupScreen = () => {
     }
   };
 
-  
-  // --- Helpers for Display ---
-  const selectedCollegeName = useMemo(() => {
-    return colleges.find(c => c.collegeId === form.collegeId)?.name || form.collegeId;
-  }, [colleges, form.collegeId]);
 
-  const getBatchLabel = (batch) => `${batch.year} (${batch.program})`;
-  const getSectionLabel = (section) => `Section ${section.name}`;
+  // --- Format Data for Selectors ---
+  const collegeOptions = useMemo(() => colleges.map(c => ({
+    label: c.name,
+    value: c.collegeId || c._id,
+    isVerified: c.isVerified !== undefined ? c.isVerified : true // Default to true for existing ones if no field
+  })), [colleges]);
 
-  const selectedBatchLabel = useMemo(() => {
-    const b = batches.find(i => i._id === form.batch);
-    return b ? getBatchLabel(b) : '';
-  }, [batches, form.batch]);
+  const getBatchLabel = (b) => b.name || `${b.year} (${b.program})`;
+  const batchOptions = useMemo(() => batches.map(b => ({
+    label: getBatchLabel(b),
+    value: b._id,
+    isVerified: b.isVerified !== undefined ? b.isVerified : true
+  })), [batches]);
 
-  const selectedSectionLabel = useMemo(() => {
-    const s = sections.find(i => i._id === form.section);
-    return s ? getSectionLabel(s) : '';
-  }, [sections, form.section]);
+  const getSectionLabel = (s) => s.name?.includes('Section') ? s.name : `Section ${s.name}`;
+  const sectionOptions = useMemo(() => sections.map(s => ({
+    label: getSectionLabel(s),
+    value: s._id,
+    isVerified: s.isVerified !== undefined ? s.isVerified : true
+  })), [sections]);
+
+
+  // --- Handle Custom Additions ---
+  const handleAddCollege = (customName) => {
+    const customId = `custom_col_${Date.now()}`;
+    const newCollege = { _id: customId, collegeId: customId, name: customName, isVerified: false };
+    setColleges(prev => [...prev, newCollege]);
+    setForm(prev => ({ ...prev, collegeId: customId }));
+  };
+
+  const submitPrompt = (text) => {
+    if (!text.trim()) {
+      setPromptConfig({ ...promptConfig, visible: false });
+      return;
+    }
+    
+    if (promptConfig.type === 'batch') {
+      const customId = `custom_batch_${Date.now()}`;
+      const newBatch = { _id: customId, name: text, year: text, program: 'Custom', isVerified: false };
+      setBatches(prev => [...prev, newBatch]);
+      setForm(prev => ({ ...prev, batch: customId }));
+    } else if (promptConfig.type === 'section') {
+      const customId = `custom_sec_${Date.now()}`;
+      const newSection = { _id: customId, name: text, isVerified: false };
+      setSections(prev => [...prev, newSection]);
+      setForm(prev => ({ ...prev, section: customId }));
+    }
+    setPromptConfig({ ...promptConfig, visible: false });
+  };
 
 
   const handleContinue = async () => {
     setIsLoading(true);
     try {
-      const response = await authService.signupComplete({
+      // In the future: if IDs start with `custom_`, you might need to send them as names strings 
+      // or to a different endpoint depending on backend logic. For now, sending as is.
+      const payload = {
         collegeId: form.collegeId,
-        batch: form.batch,   // Sending ID
-        section: form.section // Sending ID
-      }, signupToken);
+        batch: form.batch,
+        section: form.section
+      };
+
+      // Handle custom fields based on your backend integration plan.
+      // If backend receives ID, send ID. If it's a new one, maybe send a flag or the raw name.
+      if (form.collegeId.startsWith('custom_')) payload.customCollegeName = colleges.find(c => c.collegeId === form.collegeId)?.name;
+      if (form.batch.startsWith('custom_')) payload.customBatchName = batches.find(b => b._id === form.batch)?.name;
+      if (form.section.startsWith('custom_')) payload.customSectionName = sections.find(s => s._id === form.section)?.name;
+
+      const response = await authService.signupComplete(payload, signupToken);
 
       if (response.success) {
         Alert.alert('Success', 'Account Created Successfully');
@@ -146,41 +232,34 @@ const ProfileSetupScreen = () => {
           
           <AppSearchInput
             label="College"
-            data={colleges.map(c => c.name)}
-            value={selectedCollegeName}
-            onSelect={(name) => {
-              const selected = colleges.find(c => c.name === name);
-              if (selected) {
-                // Determine if collegeId is needed or _id. 
-                // Previous prompt said "send collegeId (e.g. IIITR)". 
-                // Keeping that logic.
-                setForm(prev => ({ ...prev, collegeId: selected.collegeId }));
-              }
-            }}
+            data={collegeOptions}
+            value={form.collegeId}
+            onSelect={(val) => setForm(prev => ({ ...prev, collegeId: val }))}
+            onAddPress={handleAddCollege}
           />
 
           <AppDropdown 
             label="Batch / Year"
-            value={selectedBatchLabel}
-            options={batches.map(getBatchLabel)}
-            onSelect={(label) => {
-              const selected = batches.find(b => getBatchLabel(b) === label);
-              if (selected) {
-                 setForm(prev => ({ ...prev, batch: selected._id }));
-              }
-            }}
+            value={form.batch}
+            options={batchOptions}
+            onSelect={(val) => setForm(prev => ({ ...prev, batch: val }))}
+            onAddPress={() => setPromptConfig({ 
+              visible: true, type: 'batch', 
+              title: 'Add New Batch', placeholder: 'e.g. 2024 (B.Tech)' 
+            })}
+            addLabel="Add your Batch"
           />
 
           <AppDropdown 
             label="Section"
-            value={selectedSectionLabel}
-            options={sections.map(getSectionLabel)}
-            onSelect={(label) => {
-              const selected = sections.find(s => getSectionLabel(s) === label);
-              if (selected) {
-                setForm(prev => ({ ...prev, section: selected._id }));
-              }
-            }}
+            value={form.section}
+            options={sectionOptions}
+            onSelect={(val) => setForm(prev => ({ ...prev, section: val }))}
+            onAddPress={() => setPromptConfig({ 
+              visible: true, type: 'section', 
+              title: 'Add New Section', placeholder: 'e.g. A or G1' 
+            })}
+             addLabel="Add your Section"
           />
 
         </View>
@@ -199,6 +278,16 @@ const ProfileSetupScreen = () => {
         </View>
 
       </View>
+
+      {/* Reusable Input Modal */}
+      <CustomPrompt 
+        visible={promptConfig.visible} 
+        title={promptConfig.title} 
+        placeholder={promptConfig.placeholder}
+        onCancel={() => setPromptConfig({ ...promptConfig, visible: false })}
+        onSubmit={submitPrompt}
+        colors={colors}
+      />
     </ScreenWrapper>
   );
 };
@@ -206,41 +295,41 @@ const ProfileSetupScreen = () => {
 const getStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 24, // p-6
-    paddingTop: 32,        // pt-safe-top compensation
+    paddingHorizontal: 24,
+    paddingTop: 32,
   },
   header: {
     alignItems: 'center',
-    marginVertical: 32, // py-8
+    marginVertical: 32,
   },
   iconBox: {
-    width: 80, // w-20
-    height: 80, // h-20
+    width: 80,
+    height: 80,
     backgroundColor: colors.primary,
-    borderRadius: 20, // rounded-[1.25rem]
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
   },
   title: {
-    fontSize: 24, // text-2xl
+    fontSize: 24,
     fontWeight: '700',
     color: colors.textMain,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 14, // text-sm
+    fontSize: 14,
     color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
   },
   form: {
     marginBottom: 24,
-    zIndex: 1, // Ensures dropdowns float correctly
+    zIndex: 1,
   },
   footer: {
-    marginTop: 'auto', // Pushes to bottom like flex-grow
-    paddingBottom: 24, // pb-safe-bottom
+    marginTop: 'auto',
+    paddingBottom: 24,
   },
 });
 

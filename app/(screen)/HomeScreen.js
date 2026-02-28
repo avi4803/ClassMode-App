@@ -191,7 +191,7 @@ export default function DashboardScreen() {
 
 
   const handleScanPress = () => {
-    const isAdmin = data.roles.some(r => ['admin', 'local_admin'].includes(r));
+    const isAdmin = data.roles.some(r => ['admin', 'local-admin'].includes(r));
     if (isAdmin) {
       router.push('/(scan)/AddTimetableScreen');
     } else {

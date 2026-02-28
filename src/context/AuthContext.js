@@ -52,6 +52,7 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     setUserToken(null);
     await AsyncStorage.removeItem('userToken');
+    await AsyncStorage.removeItem('DASHBOARD_DATA');
     setIsLoading(false);
   };
 

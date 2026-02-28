@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert, DeviceEventEmitter } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -131,6 +131,7 @@ export default function AddTimetableScreen() {
           setProcessingStatus({ progress: 0.5, message: 'Saving timetable...' });
           
           await authService.confirmTimetable(userToken, currentJobId, modifiedSchedule);
+          DeviceEventEmitter.emit('REFRESH_DATA');
           
           Alert.alert("Success", "Timetable saved successfully!", [
               { text: "OK", onPress: () => router.replace('/(screen)/HomeScreen') }

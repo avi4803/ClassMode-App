@@ -210,9 +210,39 @@ export const AttendanceHistory = ({
 
       <View style={styles.recordsList}>
         {historyRecords.length > 0 ? (
-          historyRecords.map((record, index) => (
-            <RecordItem key={record.id || index} {...record} colors={colors} onToggle={onToggleAttendance} />
-          ))
+          (() => {
+            // Group History Logic
+            const grouped = historyRecords.reduce((acc, record) => {
+              const dateKey = record.date ? record.date.split('T')[0] : 'Unknown';
+              if (!acc[dateKey]) acc[dateKey] = [];
+              acc[dateKey].push(record);
+              return acc;
+            }, {});
+
+            // Sort dates descending
+            const sortedDates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
+
+            return sortedDates.map(date => {
+              const dateObj = new Date(date);
+              const formattedDate = isNaN(dateObj.getTime()) 
+                ? date 
+                : dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+              
+              const isToday = new Date().toISOString().split('T')[0] === date;
+              const displayDate = isToday ? "Today" : formattedDate;
+
+              return (
+                <View key={date} style={styles.dateGroup}>
+                  <Text style={[styles.dateHeader, { color: colors.textSecondary }]}>{displayDate}</Text>
+                  <View style={{ gap: 12 }}>
+                    {grouped[date].map((record, index) => (
+                      <RecordItem key={record.id || `${date}-${index}`} {...record} colors={colors} onToggle={onToggleAttendance} />
+                    ))}
+                  </View>
+                </View>
+              );
+            });
+          })()
         ) : (
           <View style={styles.emptyState}>
             <Text style={{ color: colors.textSecondary, fontFamily: THEME.fonts.medium }}>No previous records found</Text>
@@ -368,6 +398,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   secondaryBtnText: { fontSize: 14, fontFamily: THEME.fonts.bold },
+  
+  // Date Grouping
+  dateGroup: { marginBottom: 24 },
+  dateHeader: { 
+    fontSize: 13, 
+    fontFamily: THEME.fonts.bold, 
+    marginBottom: 12, 
+    textTransform: 'uppercase', 
+    letterSpacing: 0.5,
+    opacity: 0.7
+  },
 });
 
 export default AttendanceHistory;

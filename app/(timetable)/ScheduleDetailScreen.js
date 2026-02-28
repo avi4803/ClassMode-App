@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useContext, useEffect, useCallback } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, LayoutAnimation, ActivityIndicator, RefreshControl } from "react-native";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, LayoutAnimation, ActivityIndicator, RefreshControl, DeviceEventEmitter } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTheme } from "../../src/hooks/useTheme";
@@ -144,7 +144,7 @@ export default function ScheduleDetailScreen() {
 
   const handleToggleEdit = () => {
       // Check roles: admin or local_admin
-      const hasPermission = userRole.some(r => ['admin', 'local_admin'].includes(r));
+      const hasPermission = userRole.some(r => ['admin', 'local-admin'].includes(r));
       
       if (hasPermission) {
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -307,6 +307,7 @@ export default function ScheduleDetailScreen() {
       const res = await authService.cancelClass(userToken, selectedClassId, "Faculty is on leave");
       if (res.success) {
         showToast("Class cancelled successfully");
+        DeviceEventEmitter.emit('REFRESH_DATA');
         fetchSchedule(); // Refresh list
       }
     } catch (error) {
@@ -330,7 +331,7 @@ return (
             </Text>
           </View>
 
-          {userRole.some(r => ['admin', 'local_admin'].includes(r)) ? (
+          {userRole.some(r => ['admin', 'local-admin'].includes(r)) ? (
             <TouchableOpacity onPress={handleToggleEdit} style={styles.editBtn}>
               <Text style={[styles.editText, { color: theme.primary, fontFamily: theme.fonts.bold }]}>
                 {isEditMode ? 'Done' : 'Edit'}
@@ -416,7 +417,7 @@ return (
       </SafeAreaView>
 
       {/* Floating Action Button */}
-      {userRole.some(r => ['admin', 'local_admin'].includes(r)) && (
+      {userRole.some(r => ['admin', 'local-admin'].includes(r)) && (
         <TouchableOpacity
           style={[styles.fab, { backgroundColor: colors.primary }]}
           onPress={()=> router.push({ pathname: "/(timetable)/EditClassScreen", params: { initialDay: selectedDay } })}

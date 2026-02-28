@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Classmode",
-    "slug": "classmode",
+    "slug": "MyNewProject",
     "scheme": "classmode",
     "version": "1.0.1",
     "orientation": "portrait",
@@ -14,7 +14,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.avi0408.classmode",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "versionCode": 2,

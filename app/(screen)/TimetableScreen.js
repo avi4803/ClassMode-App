@@ -31,6 +31,7 @@ export default function TimetableScreen() {
   const [scheduleData, setScheduleData] = useState({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [scheduleNotFound, setScheduleNotFound] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', timestamp: 0 });
   const [userRole, setUserRole] = useState([]);
 
@@ -108,6 +109,7 @@ export default function TimetableScreen() {
         if (cached) {
           const parsed = JSON.parse(cached);
           setScheduleData(transformData(parsed));
+          setScheduleNotFound(parsed.length === 0);
           setLoading(false);
           return;
         }
@@ -118,6 +120,7 @@ export default function TimetableScreen() {
         const classes = response.data.classes || [];
         await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(classes));
         setScheduleData(transformData(classes));
+        setScheduleNotFound(classes.length === 0);
         
         // Also fetch user role from dashboard if not already set
         if (userRole.length === 0) {
@@ -126,9 +129,18 @@ export default function TimetableScreen() {
             setUserRole(dashRes.data.user.role);
           }
         }
+      } else {
+        setScheduleData(transformData([]));
+        setScheduleNotFound(true);
+        await AsyncStorage.removeItem(CACHE_KEY);
       }
     } catch (error) {
       console.log("Fetch Timetable Error", error);
+      if (error?.message?.includes('No schedule')) {
+          setScheduleData(transformData([]));
+          setScheduleNotFound(true);
+          await AsyncStorage.removeItem(CACHE_KEY);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -163,7 +175,15 @@ export default function TimetableScreen() {
     return `${formattedHour}:${m} ${ampm}`;
   };
 
-  const currentClasses = scheduleData[selectedDay] || [];
+  const currentClasses = (scheduleData[selectedDay] || []).sort((a, b) => {
+    // Helper to parse "HH:MM" to minutes
+    const toMinutes = (timeStr) => {
+      if (!timeStr) return 0;
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    };
+    return toMinutes(a.startTime) - toMinutes(b.startTime);
+  });
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.timetableBg }}>
@@ -243,7 +263,7 @@ export default function TimetableScreen() {
                 <TouchableOpacity
                   key={item.id}
                   onPress={() => {
-                    const isAdmin = userRole.some(r => ['admin', 'local_admin'].includes(r));
+                    const isAdmin = userRole.some(r => ['admin', 'local-admin'].includes(r));
                     if (!isAdmin) {
                       setToast({ visible: true, message: "Class edit only allowed for admin", timestamp: Date.now() });
                       return;
@@ -271,7 +291,7 @@ export default function TimetableScreen() {
             <View style={styles.emptyState}>
               <MaterialIcons name="event-note" size={64} color={colors.border} />
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                No classes scheduled
+                {scheduleNotFound ? "No schedule added" : "No classes scheduled"}
               </Text>
             </View>
           )
@@ -279,7 +299,7 @@ export default function TimetableScreen() {
       </ScrollView>
 
       {/* Floating Action Button */}
-      {userRole.some(r => ['admin', 'local_admin'].includes(r)) && (
+      {userRole.some(r => ['admin', 'local-admin'].includes(r)) && (
         <TouchableOpacity
           style={[styles.fab, { backgroundColor: colors.primary }]}
           onPress={()=> router.push({ pathname: "EditClassScreen", params: { initialDay: selectedDay } })}

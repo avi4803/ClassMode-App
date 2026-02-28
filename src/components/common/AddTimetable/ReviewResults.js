@@ -1,14 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../../hooks/useTheme';
+import { AuthContext } from '../../../context/AuthContext';
+import authService from '../../../services/authService';
+import { Dropdown } from '../Dropdown';
+import { TimePickerInput } from '../TimePickerInput';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export const ReviewResults = ({ data, onBack, onVerify }) => {
   const colors = useTheme();
+  const { userToken } = useContext(AuthContext);
   const [selectedDay, setSelectedDay] = useState('Mon');
+  const [subjects, setSubjects] = useState([]);
+
+  // Fetch subjects for dropdown
+  useEffect(() => {
+    const fetchSubjects = async () => {
+        try {
+            const res = await authService.getSubjects(userToken);
+            if (res.success && res.data) {
+                setSubjects(res.data.map(s => ({ 
+                    label: s.name, 
+                    value: s._id,
+                    subjectCode: s.code,
+                    room: s.defaultRoom || ""
+                })));
+            }
+        } catch (e) {
+            console.log("Failed to fetch subjects", e);
+        }
+    };
+    fetchSubjects();
+  }, [userToken]);
 
   // Process data for summaries
   const [localSchedule, setLocalSchedule] = useState((data?.schedule || []).map(item => ({
@@ -20,12 +46,18 @@ export const ReviewResults = ({ data, onBack, onVerify }) => {
   const uniqueSubjects = new Set(localSchedule.map(s => s.subject)).size;
 
   const filteredSchedule = localSchedule.map((item, index) => ({...item, originalIndex: index})).filter(item => 
-    item.day.startsWith(selectedDay) // Ensure 'Monday' matches 'Mon'
+    item.day.startsWith(selectedDay) 
   );
 
   const updateClass = (originalIndex, field, value) => {
       const updated = [...localSchedule];
       updated[originalIndex] = { ...updated[originalIndex], [field]: value };
+      
+      // Update timeString if start/end changes
+      if (field === 'startTime' || field === 'endTime') {
+          updated[originalIndex].timeString = `${updated[originalIndex].startTime} - ${updated[originalIndex].endTime}`;
+      }
+      
       setLocalSchedule(updated);
   };
   
@@ -78,8 +110,6 @@ export const ReviewResults = ({ data, onBack, onVerify }) => {
       </View>
 
       
-        {/* 2. Day Selector (Sticky inside scrollview or separate? Let's keep it separate if we want it really sticky, but for now inside is fine or just below header) */}
-        {/* Actually, user might expect this to be sticky. Let's put it in the main flow. */}
         <View style={[styles.dayContainer, { backgroundColor: colors.background,  borderBottomColor: colors.border }]}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dayScroll}>
             {DAYS.map(day => (
@@ -110,33 +140,14 @@ export const ReviewResults = ({ data, onBack, onVerify }) => {
       >
 
         {/* 3. Cards List */}
-        {/* 3. Cards List */}
         <View style={styles.listContainer}>
           {filteredSchedule.length > 0 ? (
             filteredSchedule.map((item, index) => (
               <ResultCard 
                 key={index}
-                label="Subject" 
-                value={item.subject} 
-                topValue={item.subjectCode} 
-                onChangeSubject={(text) => updateClass(item.originalIndex, 'subject', text)}
-                time={item.timeString}
-                onChangeTime={(text) => {
-                    updateClass(item.originalIndex, 'timeString', text);
-                    
-                    // Simple parser: assumes "HH:MM - HH:MM" format
-                    const parts = text.split('-').map(p => p.trim());
-                    if (parts.length === 2) {
-                        updateClass(item.originalIndex, 'startTime', parts[0]);
-                        updateClass(item.originalIndex, 'endTime', parts[1]);
-                    }
-                }}
-                // Actually, let's just allow editing Subject and Room for safety, as Time parsing is complex.
-                // Re-reading: "user can edit timing". Okay, I will make the Time Box update `startTime`.
-                
-                onChangeRoom={(text) => updateClass(item.originalIndex, 'room', text)}
-                room={item.room} 
-                roomLabel="Room"
+                item={item}
+                subjects={subjects}
+                updateClass={updateClass}
                 onDelete={() => deleteClass(item.originalIndex)}
                 lowConfidence={false} 
               />
@@ -148,14 +159,11 @@ export const ReviewResults = ({ data, onBack, onVerify }) => {
           )}
         </View>
             
-        
-
         {/* Add Class Button */}
         <TouchableOpacity style={[styles.addClassBtn, { borderColor: colors.primary }]} onPress={addClass}>
           <MaterialIcons name="add" size={24} color={colors.primary} />
         </TouchableOpacity>
         
-
         {/* 4. Bottom Actions */}
         <View style={[styles.bottomActions, { borderTopColor: colors.border }]}>
            <Text style={[styles.bottomHint, { color: colors.textSecondary }]}>Something not right?</Text>
@@ -174,7 +182,6 @@ export const ReviewResults = ({ data, onBack, onVerify }) => {
         <View style={{ height: 100 }} /> 
         </ScrollView>
       
-
       {/* 5. Fixed Footer */}
       <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
         <TouchableOpacity 
@@ -191,8 +198,34 @@ export const ReviewResults = ({ data, onBack, onVerify }) => {
   );
 };
 
-const ResultCard = ({ label, value, onChangeSubject, time, onChangeTime, room, onChangeRoom, roomLabel, placeholder, lowConfidence, onDelete }) => {
+const ResultCard = ({ item, subjects, updateClass, lowConfidence, onDelete }) => {
   const colors = useTheme();
+
+  // Helper to parse "HH:MM" to Date
+  const parseTime = (timeStr) => {
+    if (!timeStr) return new Date();
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+  };
+
+  const formatTimeHHMM = (date) => {
+    const h = date.getHours().toString().padStart(2, '0');
+    const m = date.getMinutes().toString().padStart(2, '0');
+    return `${h}:${m}`;
+  };
+
+  const handleSubjectSelect = (val) => {
+    const selected = subjects.find(s => s.value === val);
+    updateClass(item.originalIndex, 'subject', val); // Store ID if possible
+    
+    if (selected) {
+        updateClass(item.originalIndex, 'subjectCode', selected.subjectCode);
+        // Optional: Auto-fill room if available
+        // if (selected.room) updateClass(item.originalIndex, 'room', selected.room);
+    }
+  };
   
   return (
     <View style={[
@@ -204,13 +237,14 @@ const ResultCard = ({ label, value, onChangeSubject, time, onChangeTime, room, o
     ]}>
       {/* Subject Row */}
       <View style={styles.cardRowTop}>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{label}</Text>
-          <TextInput 
-            style={[styles.mainInput, { color: colors.textPrimary }]} 
-            value={value} 
-            placeholderTextColor={colors.textSecondary}
-            onChangeText={onChangeSubject}
+        <View style={{ flex: 1, paddingRight: 8 }}>
+          <Dropdown 
+            label="Subject"
+            value={item.subject}
+            options={subjects}
+            searchable={true}
+            placeholder={item.subject || "Select Subject"} 
+            onSelect={handleSubjectSelect}
           />
         </View>
         <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
@@ -221,25 +255,30 @@ const ResultCard = ({ label, value, onChangeSubject, time, onChangeTime, room, o
       {/* Details Grid */}
       <View style={styles.cardGrid}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Time</Text>
-          <TextInput 
-            style={[styles.subInput, { color: colors.textPrimary }]} 
-            value={time} 
-            placeholderTextColor={colors.textSecondary}
-            onChangeText={onChangeTime} 
-            // editable={true} // Now enabled
+          <TimePickerInput 
+            label="Start Time" 
+            value={parseTime(item.startTime)} 
+            onChange={(d) => updateClass(item.originalIndex, 'startTime', formatTimeHHMM(d))} 
           />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{roomLabel}</Text>
-          <TextInput 
-            style={[styles.subInput, { color: colors.textPrimary }]} 
-            value={room} 
-            onChangeText={onChangeRoom}
-            placeholder={placeholder || "Add Room"} 
-            placeholderTextColor={colors.textSecondary}
+          <TimePickerInput 
+            label="End Time" 
+            value={parseTime(item.endTime)} 
+            onChange={(d) => updateClass(item.originalIndex, 'endTime', formatTimeHHMM(d))} 
           />
         </View>
+      </View>
+
+      <View style={{ marginTop: 12 }}>
+          <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Room</Text>
+          <TextInput 
+            style={[styles.input, { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.inputBg }]} 
+            value={item.room} 
+            onChangeText={(text) => updateClass(item.originalIndex, 'room', text)}
+            placeholder="Room No." 
+            placeholderTextColor={colors.textSecondary}
+          />
       </View>
 
       {lowConfidence && (
@@ -271,12 +310,11 @@ const styles = StyleSheet.create({
   listContainer: { padding: 16, gap: 16, paddingBottom: 0 },
   card: { padding: 16, borderRadius: 12, borderWidth: 1 },
   cardRowTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  inputLabel: { fontSize: 11, marginBottom: 2, fontWeight: '500' },
-  mainInput: { fontSize: 17, fontWeight: '600', paddingVertical: 2 },
-  deleteBtn: { padding: 4, marginTop: 4 },
+  inputLabel: { fontSize: 13, marginBottom: 8, marginLeft: 4, fontWeight: '600' },
+  input: { padding: 14, borderRadius: 12, borderWidth: 1, fontSize: 16 },
+  deleteBtn: { padding: 4, marginTop: 24 },
   
-  cardGrid: { flexDirection: 'row', gap: 16, marginTop: 16 },
-  subInput: { fontSize: 14, paddingVertical: 2, fontWeight: '400' },
+  cardGrid: { flexDirection: 'row', gap: 16, marginTop: 4 },
   
   warningPill: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, marginTop: 12 },
   warningText: { fontSize: 11, fontWeight: '700' },
