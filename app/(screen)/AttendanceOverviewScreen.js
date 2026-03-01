@@ -96,7 +96,7 @@ export default function AttendanceOverviewScreen() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchAttendanceStats();
+    fetchAttendanceStats(true); // Call silently to prevent full screen loading
   }, [userToken]);
 
   const { overall, subjectWise } = stats;
@@ -168,6 +168,7 @@ export default function AttendanceOverviewScreen() {
               percentage={Math.round(parseFloat(item.percentage))}
               attended={item.present || 0}
               total={item.total || 0}
+              recentHistory={item.recentHistory || []}
               onPress={() => router.push({
                 pathname: '/(attendance)/SubjectAttendanceDetail',
                 params: { 

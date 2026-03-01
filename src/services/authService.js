@@ -189,6 +189,7 @@ const getNotifications = async (token, params = {}) => {
       params,
       headers: { 'x-access-token': token }
     });
+    
     return response.data;
   } catch (error) {
     console.log("Get Notifications Error", error);
