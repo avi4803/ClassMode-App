@@ -11,6 +11,7 @@ import authService from '../../src/services/authService';
 // Component Import
 import AttendanceHistory from '../../src/components/common/AttendanceScreen/AttendanceHistory';
 import DateRangeModal from '../../src/components/common/AttendanceScreen/DateRangeModal';
+import CustomAlert from '../../src/components/common/CustomAlert';
 
 export default function AttendanceHistoryScreen() {
   const colors = useTheme();
@@ -26,6 +27,7 @@ export default function AttendanceHistoryScreen() {
   // Date Filter State
   const [dateRange, setDateRange] = useState({ start: null, end: null });
   const [showModal, setShowModal] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({ visible: false, title: '', message: '' });
 
   const fetchAttendanceHistory = async (silent = false) => {
     try {
@@ -177,7 +179,11 @@ export default function AttendanceHistoryScreen() {
       });
     } catch (error) {
       console.error("Error fetching attendance history:", error);
-      if (!silent) Alert.alert("Error", "Could not fetch attendance records.");
+      if (!silent) setAlertConfig({
+        visible: true,
+        title: "Error",
+        message: "Could not fetch attendance records. Please check your network."
+      });
     } finally {
       if (!silent) setLoading(false);
     }
@@ -249,7 +255,11 @@ export default function AttendanceHistoryScreen() {
         todayRecords: prevToday,
         historyRecords: prevHistory 
       }));
-      Alert.alert("Error", "Could not update attendance.");
+      setAlertConfig({
+        visible: true,
+        title: "Update Failed",
+        message: "Could not update attendance status. Please try again."
+      });
     }
   };
 
@@ -279,6 +289,13 @@ export default function AttendanceHistoryScreen() {
           onClose={() => setShowModal(false)}
           onApply={handleApplyRange}
           initialRange={dateRange}
+        />
+
+        <CustomAlert 
+          visible={alertConfig.visible}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
         />
       </SafeAreaView>
     </View>

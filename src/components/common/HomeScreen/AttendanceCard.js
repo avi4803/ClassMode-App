@@ -1,165 +1,105 @@
 import React from 'react';
 import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import Svg, { Circle } from 'react-native-svg';
 import { useTheme } from '../../../hooks/useTheme';
 
-export const AttendanceCard = ({ percentage }) => {
+export const AttendanceCard = ({ 
+  percentage = 0, 
+  present = 0, 
+  total = 0, 
+  absent = 0, 
+  dateRange = "N/A" 
+}) => {
   const colors = useTheme();
   const { width } = useWindowDimensions();
   
-  // Responsive Scaling
   const isSmallScreen = width < 380;
-  const size = isSmallScreen ? 48 : 56;
-  const strokeWidth = isSmallScreen ? 3 : 4;
-  
-  // --- SVG Math ---
-  const center = size / 2;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  
-  // Calculate how much of the stroke to show
-  const progress = (percentage / 100) * circumference;
-  const dashOffset = circumference - progress;
+
+  const StatBox = ({ value, label }) => (
+    <View style={[styles.statBox, { backgroundColor: colors.background || '#f8fafc' }]}>
+      <Text style={[styles.statValue, { color: colors.textPrimary }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{label}</Text>
+    </View>
+  );
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.cardSlate }]}>
-      {/* Ribbon Badge */}
-      <View style={styles.ribbonContainer}>
-        <View style={[styles.ribbon, { backgroundColor: colors.primary }]}>
-          <Text style={[styles.ribbonText, { color: '#ffffff' }]}>COMING SOON</Text>
+    <View style={[styles.card, { backgroundColor: colors.cardSlate || '#ffffff', borderColor: colors.border }]}>
+      {/* Top Header Row */}
+      <View style={styles.headerRow}>
+        <View style={styles.headerText}>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Attendance Percentage</Text>
+          <Text style={[styles.dateRange, { color: colors.textSecondary }]}>{dateRange} schedule</Text>
         </View>
-      </View>
-
-      <View style={styles.contentRow}>
-        <View style={[styles.progressContainer, { width: size, height: size }]}>
-          <Svg width={size} height={size} style={styles.svg}>
-            {/* Background Circle */}
-            <Circle
-              cx={center}
-              cy={center}
-              r={radius}
-              stroke={colors.border}
-              strokeWidth={strokeWidth}
-              fill="none"
-            />
-            {/* Foreground Circle */}
-            <Circle
-              cx={center}
-              cy={center}
-              r={radius}
-              stroke='#22c55e'
-              strokeWidth={strokeWidth}
-              fill="none"
-              strokeDasharray={circumference}
-              strokeDashoffset={dashOffset}
-              strokeLinecap="round"
-              transform={`rotate(-90 ${center} ${center})`}
-            />
-          </Svg>
-          <View style={styles.textOverlay}>
-            <Text style={[styles.percentText, { color: colors.textPrimary, fontSize: isSmallScreen ? 11 : 13 }]}>
-              {percentage}%
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.textContainer}>
-          <Text 
-            numberOfLines={1} 
-            style={[styles.title, { color: colors.textPrimary, fontSize: isSmallScreen ? 15 : 17 }]}
-          >
-            Attendance
-          </Text>
-          <Text 
-            numberOfLines={1} 
-            style={[styles.subtitle, { color: colors.textSecondary, fontSize: isSmallScreen ? 11 : 12 }]}
-          >
-            On track (Min 75%)
-          </Text>
-        </View>
-      </View>
-
-      <View style={[styles.statusBadge, { backgroundColor: '#22c55e' }]}>
-        <MaterialIcons name="thumb-up" size={isSmallScreen ? 12 : 14} color={colors.cardSlate} />
-        <Text style={[styles.statusText, { color: colors.cardSlate, fontSize: isSmallScreen ? 11 : 13 }]}>
-          {percentage >= 75 ? 'Good' : 'Bad'}
+        <Text style={[styles.percentageText, { color: colors.textSecondary || '#cbd5e1' }]}>
+          {percentage}%
         </Text>
+      </View>
+
+      {/* Stats Row */}
+      <View style={styles.statsRow}>
+        <StatBox value={present} label="Present" />
+        <StatBox value={total} label="Total" />
+        <StatBox value={absent} label="Absent" />
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  card: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    padding: 16, 
-    borderRadius: 16, 
+  card: {
+    padding: 20,
+    borderRadius: 20,
     marginBottom: 24,
-    overflow: 'hidden', // Ensures ribbon is clipped properly
-    position: 'relative'
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
   },
-  contentRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center',
-    flex: 1, // Takes available space
-    marginRight: 8
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
   },
-  progressContainer: { 
-    alignItems: 'center', 
-    justifyContent: 'center' 
-  },
-  svg: {
-    position: 'absolute',
-  },
-  textOverlay: {
+  headerText: {
     flex: 1,
-    paddingBottom: "10%",
-    alignItems: 'center',
+  },
+  title: {
+    fontSize: 16,
+    fontFamily: 'Urbanist_700Bold',
+    marginBottom: 4,
+  },
+  dateRange: {
+    fontSize: 12,
+    fontFamily: 'Urbanist_500Medium',
+    opacity: 0.8,
+  },
+  percentageText: {
+    fontSize: 22,
+    fontFamily: 'Urbanist_700Bold',
+    marginLeft: 10,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statBox: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 12,
+    height: 70,
     justifyContent: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  percentText: { fontFamily: 'Urbanist_800ExtraBold' },
-  textContainer: { 
-    marginLeft: 12,
-    flex: 1, // Prevents text from pushing ribbon/badge out
+  statValue: {
+    fontSize: 20,
+    fontFamily: 'Urbanist_800ExtraBold',
   },
-  title: { fontFamily: 'Urbanist_700Bold' },
-  subtitle: { fontFamily: 'Urbanist_500Medium', marginTop: 2 },
-  statusBadge: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    paddingHorizontal: 10, 
-    paddingVertical: 6, 
-    borderRadius: 10,
-    minWidth: 60,
-    justifyContent: 'center'
-  },
-  statusText: { fontFamily: 'Urbanist_700Bold', marginLeft: 4 },
-  ribbonContainer: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 80,
-    height: 80,
-    overflow: 'hidden',
-    zIndex: 10,
-  },
-  ribbon: {
-    position: 'absolute',
-    top: 15,
-    right: -25,
-    width: 100,
-    paddingVertical: 3,
-    transform: [{ rotate: '45deg' }],
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 5,
-  },
-  ribbonText: {
-    fontSize: 7,
-    fontFamily: 'Urbanist_900Black',
-    letterSpacing: 1,
+  statLabel: {
+    fontSize: 13,
+    fontFamily: 'Urbanist_600SemiBold',
   },
 });
+
+export default AttendanceCard;

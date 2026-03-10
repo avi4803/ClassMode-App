@@ -98,6 +98,9 @@ const DateRangeModal = ({ visible, onClose, onApply, initialRange }) => {
     let start = new Date();
     
     switch(type) {
+      case 'all':
+        setRange({ start: null, end: null });
+        return;
       case 'today':
         break;
       case '7d':
@@ -140,8 +143,8 @@ const DateRangeModal = ({ visible, onClose, onApply, initialRange }) => {
           </View>
 
           <View style={styles.quickOptions}>
-            {['Today', '7 Days', '30 Days', 'This Month'].map((label, idx) => {
-              const types = ['today', '7d', '30d', 'month'];
+            {['All', 'Today', '7 Days', '30 Days', 'This Month'].map((label, idx) => {
+              const types = ['all', 'today', '7d', '30d', 'month'];
               return (
                 <TouchableOpacity 
                   key={idx} 

@@ -1,33 +1,51 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../../hooks/useTheme';
 import { THEME } from '../../../constants/colors';
 
+// Enable LayoutAnimation for Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 export const SubjectAttendanceCard = ({ subject, professor, percentage, attended, total, recentHistory, onPress }) => {
   const colors = useTheme();
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const toggleExpand = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsExpanded(!isExpanded);
+  };
 
   // Dynamic Logic for Status Colors
   const getStatus = () => {
     if (percentage >= 75) {
+      // Classes they can miss before dropping below 75%
+      const margin = Math.max(0, Math.floor((4 * attended - 3 * total) / 3));
       return { 
         color: colors.statusPerfect, 
-        label: percentage === 100 ? 'Perfect' : 'On Track', 
+        label: margin > 0 ? `Can miss ${margin}` : 'Safe', 
         badge: colors.badgeGreen,
         icon: 'check-circle'
       };
     }
+    
+    // Classes needed to reach exactly >= 75%
+    const requiredClasses = (3 * total) - (4 * attended);
+    const label = `Attend ${requiredClasses} more`;
+
     if (percentage >= 65) {
       return { 
         color: colors.statusWarning, 
-        label: 'Warning', 
+        label: label, 
         badge: colors.badgeYellow,
         icon: 'warning'
       };
     }
     return { 
       color: colors.statusCritical, 
-      label: 'Critical', 
+      label: label, 
       badge: colors.badgeRed,
       icon: 'error-outline'
     };
@@ -35,13 +53,11 @@ export const SubjectAttendanceCard = ({ subject, professor, percentage, attended
 
   const status = getStatus();
 
-  console.log('Rendering Subject:', subject, 'Recent History length:', recentHistory ? recentHistory.length : 0);
-
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <TouchableOpacity 
         activeOpacity={0.7}
-        onPress={onPress} 
+        onPress={toggleExpand} 
         style={styles.touchableArea}
       >
         <View style={styles.header}>
@@ -52,67 +68,85 @@ export const SubjectAttendanceCard = ({ subject, professor, percentage, attended
               <Text style={[styles.professor, { color: colors.textSecondary }]} numberOfLines={1}>{professor}</Text>
             </View>
           </View>
-          <View style={styles.percentContainer}>
-            <Text style={[styles.percentText, { color: status.color }]}>{percentage}%</Text>
+          <View style={styles.headerRight}>
+            <View style={styles.percentContainer}>
+              <Text style={[styles.percentText, { color: status.color }]}>{percentage}%</Text>
+            </View>
+            <MaterialIcons 
+              name={isExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"} 
+              size={24} 
+              color={colors.textSecondary} 
+              style={{ marginLeft: 8 }}
+            />
           </View>
         </View>
 
-        <View style={styles.progressSection}>
-          <View style={[styles.track, { backgroundColor: colors.isDark ? '#1e293b' : '#f1f5f9' }]}>
-            <View style={[styles.bar, { width: `${percentage}%`, backgroundColor: status.color }]} />
-          </View>
-          
-          <View style={styles.footerRow}>
-            <View style={[styles.badge, { backgroundColor: status.badge }]}>
-              <MaterialIcons name={status.icon} size={12} color={status.color} style={{ marginRight: 4 }} />
-              <Text style={[styles.badgeText, { color: status.color }]}>{status.label}</Text>
-            </View>
-            <View style={styles.statsRow}>
-              <Text style={[styles.attendedCount, { color: colors.textPrimary }]}>{attended}</Text>
-              <Text style={[styles.totalCount, { color: colors.textSecondary }]}>/{total} sessions</Text>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-
-      {/* History section for the last ~10 days */}
-      <View style={[styles.historySection, { borderTopColor: colors.border }]}>
-        {recentHistory && recentHistory.length > 0 ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.historyScroll}>
-            {[...recentHistory].reverse().map((record, index) => {
-              const dateObj = new Date(record.date);
-              const day = dateObj.getDate();
-              const recordStatus = record.status;
+        {isExpanded && (
+          <View style={styles.expandedContent}>
+            <View style={styles.progressSection}>
+              <View style={[styles.track, { backgroundColor: colors.isDark ? '#1e293b' : '#f1f5f9' }]}>
+                <View style={[styles.bar, { width: `${percentage}%`, backgroundColor: status.color }]} />
+              </View>
               
-              let dotColor = colors.border;
-              let hasDot = false;
-              let isDash = false;
-
-              if (recordStatus === 'present') {
-                dotColor = colors.statusPerfect;
-                hasDot = true;
-              } else if (recordStatus === 'absent') {
-                dotColor = colors.statusCritical;
-                hasDot = true;
-              } else {
-                isDash = true; // 'unmarked' or any other state
-              }
-              
-              return (
-                <View key={record.id || index} style={[styles.dateBox, { borderColor: colors.border, backgroundColor: colors.isDark ? '#1e293b' : '#f8fafc' }]}>
-                  <Text style={[styles.dateText, { color: colors.textSecondary }]}>{day}</Text>
-                  {hasDot && <View style={[styles.dot, { backgroundColor: dotColor }]} />}
-                  {isDash && <Text style={{ color: colors.border, fontSize: 10, lineHeight: 10, fontWeight: 'bold' }}>-</Text>}
+              <View style={styles.footerRow}>
+                <View style={[styles.badge, { backgroundColor: status.badge }]}>
+                  <MaterialIcons name={status.icon} size={12} color={status.color} style={{ marginRight: 4 }} />
+                  <Text style={[styles.badgeText, { color: status.color }]}>{status.label}</Text>
                 </View>
-              );
-            })}
-          </ScrollView>
-        ) : (
-          <Text style={{ fontSize: 12, color: colors.textSecondary, fontStyle: 'italic', paddingVertical: 10 }}>
-            No past records
-          </Text>
+                <View style={styles.statsRow}>
+                  <Text style={[styles.attendedCount, { color: colors.textPrimary }]}>{attended}</Text>
+                  <Text style={[styles.totalCount, { color: colors.textSecondary }]}>/{total} sessions</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* History section */}
+            <View style={styles.historySection}>
+              <View style={styles.historyHeader}>
+                <Text style={[styles.historyTitle, { color: colors.textSecondary }]}>Recent History</Text>
+                <TouchableOpacity onPress={onPress}>
+                  <Text style={[styles.detailLink, { color: colors.primary }]}>View Details</Text>
+                </TouchableOpacity>
+              </View>
+              {recentHistory && recentHistory.length > 0 ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.historyScroll}>
+                  {[...recentHistory].sort((a, b) => new Date(a.date) - new Date(b.date)).map((record, index) => {
+                    const dateObj = new Date(record.date);
+                    const day = dateObj.getDate();
+                    const recordStatus = record?.status ? String(record.status).toLowerCase().trim() : '';
+                    
+                    let dotColor = colors.border || '#e2e8f0';
+                    let hasDot = false;
+                    let isDash = false;
+
+                    if (recordStatus === 'present') {
+                      dotColor = colors.statusPerfect || '#22c55e';
+                      hasDot = true;
+                    } else if (recordStatus === 'absent') {
+                      dotColor = colors.statusCritical || '#ef4444';
+                      hasDot = true;
+                    } else {
+                      isDash = true;
+                    }
+                    
+                    return (
+                      <View key={record.id || index} style={[styles.dateBox, { borderColor: colors.border, backgroundColor: colors.isDark ? '#1e293b' : '#f8fafc' }]}>
+                        <Text style={[styles.dateText, { color: colors.textSecondary }]}>{day}</Text>
+                        {hasDot && <View style={[styles.dot, { backgroundColor: dotColor }]} />}
+                        {isDash && <Text style={{ color: colors.border, fontSize: 10, lineHeight: 10, fontWeight: 'bold' }}>-</Text>}
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+              ) : (
+                <Text style={{ fontSize: 12, color: colors.textSecondary, fontStyle: 'italic', paddingVertical: 10 }}>
+                  No past records
+                </Text>
+              )}
+            </View>
+          </View>
         )}
-      </View>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -137,6 +171,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between', 
     alignItems: 'center' 
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   titleArea: { flex: 1, paddingRight: 8 },
   subjectName: { 
     fontSize: 16, 
@@ -155,6 +193,9 @@ const styles = StyleSheet.create({
     fontSize: 20, 
     fontFamily: THEME.fonts.extraBold,
     letterSpacing: -0.5 
+  },
+  expandedContent: {
+    marginTop: 0,
   },
   progressSection: { marginTop: 14 },
   track: { 
@@ -193,13 +234,25 @@ const styles = StyleSheet.create({
     marginLeft: 2
   },
   historySection: {
-    paddingTop: 16,
-    paddingBottom: 16,
-    paddingLeft: 16,
-    borderTopWidth: 1,
+    paddingTop: 20,
+    paddingBottom: 0,
+    paddingLeft: 0,
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  historyTitle: {
+    fontSize: 13,
+    fontFamily: THEME.fonts.bold,
+  },
+  detailLink: {
+    fontSize: 12,
+    fontFamily: THEME.fonts.bold,
   },
   historyScroll: {
-    paddingRight: 16,
     gap: 10,
   },
   dateBox: {
@@ -208,7 +261,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     alignItems: 'center',
-    justifyContent: 'center',
     paddingVertical: 6,
     justifyContent: 'space-between'
   },

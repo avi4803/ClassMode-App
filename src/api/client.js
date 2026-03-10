@@ -16,13 +16,11 @@ const getBaseUrl = () => {
   }
   
   // Fallback IP if not running via Expo dev server (should be your dev machine IP)
-  return 'http://10.0.1.33:3000/api/v1';
+  return 'http://10.0.1.90:3000/api/v1';
 };
 
-const BASE_URL = "http://10.0.2.11:3000/api/v1";
+const BASE_URL = "http://10.0.1.90:3000/api/v1";
 // "http://3.6.224.83:3000/api/v1"
-//  "https://negligently-multisulcated-kazuko.ngrok-free.dev/api/v1";
-// "https://negligently-multisulcated-kazuko.ngrok-free.dev/api/v1";
 
 const client = axios.create({
   baseURL: BASE_URL,

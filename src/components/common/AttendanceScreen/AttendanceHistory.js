@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
+import { View, Text, StyleSheet, SectionList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import Svg, { Circle } from 'react-native-svg';
 import Animated, { 
@@ -136,6 +136,19 @@ export const AttendanceHistory = ({
   onFilterPress 
 }) => {
   const colors = useTheme();
+  const [activeTab, setActiveTab] = useState('All');
+
+  // Calculate counts for filters
+  const allCount = historyRecords.length;
+  
+  const pendingCount = historyRecords.filter(r => {
+    const s = (r.status || '').toLowerCase();
+    return s !== 'present' && s !== 'absent' && s !== 'cancelled' && s !== 'rescheduled';
+  }).length;
+
+  const missingCount = historyRecords.filter(r => {
+    return (r.status || '').toLowerCase() === 'absent';
+  }).length;
 
   // Dynamic logic for status
   const getStatusInfo = () => {
@@ -146,6 +159,48 @@ export const AttendanceHistory = ({
 
   const statusInfo = getStatusInfo();
 
+  const sections = useMemo(() => {
+    if (historyRecords.length === 0) return [];
+
+    const filteredRecords = historyRecords.filter(record => {
+      const s = (record.status || '').toLowerCase();
+      const isPresent = s === 'present';
+      const isAbsent = s === 'absent';
+      const isCancelled = s === 'cancelled' || s === 'rescheduled';
+      const isPending = !isPresent && !isAbsent && !isCancelled;
+
+      if (activeTab === 'Pending') return isPending;
+      if (activeTab === 'Missing') return isAbsent;
+      return true; // 'All'
+    });
+
+    if (filteredRecords.length === 0) return [];
+
+    const grouped = filteredRecords.reduce((acc, record) => {
+      const dateKey = record.date ? record.date.split('T')[0] : 'Unknown';
+      if (!acc[dateKey]) acc[dateKey] = [];
+      acc[dateKey].push(record);
+      return acc;
+    }, {});
+
+    const sortedDates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
+
+    return sortedDates.map(date => {
+      const dateObj = new Date(date);
+      const formattedDate = isNaN(dateObj.getTime()) 
+        ? date 
+        : dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+      
+      const isToday = new Date().toISOString().split('T')[0] === date;
+      const displayDate = isToday ? "Today" : formattedDate;
+
+      return {
+        title: displayDate,
+        data: grouped[date]
+      };
+    });
+  }, [historyRecords, activeTab]);
+
   if (loading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
@@ -154,12 +209,8 @@ export const AttendanceHistory = ({
     );
   }
 
-  return (
-    <ScrollView 
-      style={{ flex: 1 }} 
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
-    >
+  const listHeader = (
+    <View style={{ marginBottom: 16 }}>
       {/* Header Info */}
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>Attendance</Text>
@@ -197,7 +248,6 @@ export const AttendanceHistory = ({
         )}
       </View>
 
-      {/* Previous Records Section */}
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Previous Records</Text>
         <TouchableOpacity 
@@ -208,65 +258,84 @@ export const AttendanceHistory = ({
         </TouchableOpacity>
       </View>
 
-      <View style={styles.recordsList}>
-        {historyRecords.length > 0 ? (
-          (() => {
-            // Group History Logic
-            const grouped = historyRecords.reduce((acc, record) => {
-              const dateKey = record.date ? record.date.split('T')[0] : 'Unknown';
-              if (!acc[dateKey]) acc[dateKey] = [];
-              acc[dateKey].push(record);
-              return acc;
-            }, {});
-
-            // Sort dates descending
-            const sortedDates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
-
-            return sortedDates.map(date => {
-              const dateObj = new Date(date);
-              const formattedDate = isNaN(dateObj.getTime()) 
-                ? date 
-                : dateObj.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
-              
-              const isToday = new Date().toISOString().split('T')[0] === date;
-              const displayDate = isToday ? "Today" : formattedDate;
-
-              return (
-                <View key={date} style={styles.dateGroup}>
-                  <Text style={[styles.dateHeader, { color: colors.textSecondary }]}>{displayDate}</Text>
-                  <View style={{ gap: 12 }}>
-                    {grouped[date].map((record, index) => (
-                      <RecordItem key={record.id || `${date}-${index}`} {...record} colors={colors} onToggle={onToggleAttendance} />
-                    ))}
-                  </View>
-                </View>
-              );
-            });
-          })()
-        ) : (
-          <View style={styles.emptyState}>
-            <Text style={{ color: colors.textSecondary, fontFamily: THEME.fonts.medium }}>No previous records found</Text>
-          </View>
-        )}
+      {/* Tabbed Navigation Filter */}
+      <View style={styles.tabsContainer}>
+        {['All', 'Pending', 'Missing'].map((tab) => {
+          const isActive = activeTab === tab;
+          let label = tab;
+          
+          if (tab === 'All') label = `All (${allCount})`;
+          if (tab === 'Pending') label = `Pending (${pendingCount})`;
+          if (tab === 'Missing') label = `Missing (${missingCount})`;
+          
+          return (
+            <TouchableOpacity 
+              key={tab} 
+              onPress={() => setActiveTab(tab)}
+              style={[
+                styles.tabPill, 
+                { backgroundColor: isActive ? colors.primary : colors.border + '30' }
+              ]}
+            >
+              <Text style={[
+                styles.tabPillText, 
+                { color: isActive ? '#fff' : colors.textSecondary }
+              ]}>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
+    </View>
+  );
 
-      {/* Actions */}
-      <View style={styles.actionContainer}>
-        <TouchableOpacity 
-          style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
-          onPress={onMarkAttendance}
-        >
-          <MaterialIcons name="qr-code-scanner" size={20} color="#fff" />
-          <Text style={styles.primaryBtnText}>Mark Attendance</Text>
-        </TouchableOpacity>
+  const listFooter = (
+    <View style={styles.actionContainer}>
+      <TouchableOpacity 
+        style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+        onPress={onMarkAttendance}
+      >
+        <MaterialIcons name="qr-code-scanner" size={20} color="#fff" />
+        <Text style={styles.primaryBtnText}>Mark Attendance</Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity style={styles.secondaryBtn}>
-          <Text style={[styles.secondaryBtnText, { color: colors.primary }]}>View Full History</Text>
-        </TouchableOpacity>
-      </View>
-
+      <TouchableOpacity style={styles.secondaryBtn}>
+        <Text style={[styles.secondaryBtnText, { color: colors.primary }]}>View Full History</Text>
+      </TouchableOpacity>
       <View style={{ height: 40 }} />
-    </ScrollView>
+    </View>
+  );
+
+  return (
+    <SectionList 
+      style={{ flex: 1 }} 
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+      stickySectionHeadersEnabled={false}
+      sections={sections}
+      keyExtractor={(item, index) => item.id || `record-${index}`}
+      ListHeaderComponent={listHeader}
+      renderSectionHeader={({ section: { title } }) => (
+        <Text style={[styles.dateHeader, { color: colors.textSecondary }]}>{title}</Text>
+      )}
+      renderItem={({ item }) => (
+        <View style={{ marginBottom: 12 }}>
+          <RecordItem {...item} colors={colors} onToggle={onToggleAttendance} />
+        </View>
+      )}
+      renderSectionFooter={() => <View style={{ height: 12 }} />}
+      ListEmptyComponent={
+        <View style={styles.emptyState}>
+          <Text style={{ color: colors.textSecondary, fontFamily: THEME.fonts.medium }}>
+            {historyRecords.length === 0 
+              ? "No previous records found" 
+              : `No ${activeTab.toLowerCase()} records found`}
+          </Text>
+        </View>
+      }
+      ListFooterComponent={listFooter}
+    />
   );
 };
 
@@ -338,6 +407,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sectionTitle: { fontSize: 18, fontFamily: THEME.fonts.bold },
+  tabsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  tabPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabPillText: {
+    fontSize: 13,
+    fontFamily: THEME.fonts.bold,
+  },
   recordsList: { gap: 12, marginBottom: 32 },
   recordItem: {
     flexDirection: 'row',

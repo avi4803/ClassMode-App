@@ -8,12 +8,13 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
-  DeviceEventEmitter
+  DeviceEventEmitter,
+  Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useTheme } from '../../src/hooks/useTheme';
-import { THEME } from '../../src/constants/colors';
+import { useTheme } from "../../src/hooks/useTheme";
+import { THEME } from "../../src/constants/colors";
 import { SubjectAttendanceCard } from '../../src/components/common/AttendanceScreen/SubjectAttendanceCard';
 import { router } from 'expo-router';
 import { useScrollToTop } from '@react-navigation/native';
@@ -61,6 +62,8 @@ export default function AttendanceOverviewScreen() {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [filterMode, setFilterMode] = useState('All');
+  const [showFilterModal, setShowFilterModal] = useState(false);
   const [stats, setStats] = useState({
     overall: { percentage: "0", total: 0, present: 0 },
     subjectWise: []
@@ -110,6 +113,14 @@ export default function AttendanceOverviewScreen() {
     );
   }
 
+  const filteredSubjects = subjectWise.filter(item => {
+    const p = Math.round(parseFloat(item.percentage || 0));
+    if (filterMode === '<75%') return p < 75;
+    if (filterMode === '<60%') return p < 60;
+    if (filterMode === '<50%') return p < 50;
+    return true; // 'All'
+  });
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <SafeAreaView edges={['top']} style={{ flex: 1 }}>
@@ -123,8 +134,11 @@ export default function AttendanceOverviewScreen() {
             <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Attendance</Text>
             <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>Current Semester</Text>
           </View>
-          <TouchableOpacity style={[styles.iconBtn, { borderColor: colors.border }]}>
-            <MaterialIcons name="filter-list" size={22} color={colors.textPrimary} />
+          <TouchableOpacity 
+            style={[styles.iconBtn, { borderColor: colors.border }]}
+            onPress={() => setShowFilterModal(true)}
+          >
+            <MaterialIcons name="filter-list" size={22} color={filterMode !== 'All' ? colors.primary : colors.textPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -144,13 +158,7 @@ export default function AttendanceOverviewScreen() {
             totalClasses={overall.total || 0} 
           />
 
-          {/* Info Banner */}
-          <View style={[styles.infoBanner, { backgroundColor: colors.isDark ? 'rgba(99, 102, 241, 0.1)' : '#eef2ff' }]}>
-            <MaterialIcons name="info" size={18} color={colors.primary} />
-            <Text style={[styles.infoText, { color: colors.slate600 || colors.textSecondary }]}>
-              Minimum <Text style={{ fontFamily: THEME.fonts.bold, color: colors.primary }}>75%</Text> required for exams.
-            </Text>
-          </View>
+
 
           {/* List Section */}
           <View style={styles.listHeader}>
@@ -160,9 +168,10 @@ export default function AttendanceOverviewScreen() {
             </TouchableOpacity>
           </View>
 
-          {subjectWise.map((item, index) => (
-            <SubjectAttendanceCard 
-              key={item.subjectId || item.subjectName || index} 
+          {filteredSubjects.length > 0 ? (
+            filteredSubjects.map((item, index) => (
+              <SubjectAttendanceCard 
+                key={item.subjectId || item.subjectName || index} 
               subject={item.subjectName}
               professor={item.professor || "Faculty"}
               percentage={Math.round(parseFloat(item.percentage))}
@@ -180,11 +189,58 @@ export default function AttendanceOverviewScreen() {
                   total: item.total || 0
                 }
               })}
-            />
-          ))}
-          
-          <View style={{ height: 40 }} />
+              />
+            ))
+          ) : (
+            <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+              <MaterialIcons name="info-outline" size={32} color={colors.textSecondary} style={{ opacity: 0.5, marginBottom: 8 }} />
+              <Text style={{ color: colors.textSecondary, fontFamily: THEME.fonts.medium }}>
+                No subjects found below {filterMode.replace('<', '')}%.
+              </Text>
+            </View>
+          )}
+          <View style={{ height: 100 }} />
         </ScrollView>
+
+        {/* Filter Modal */}
+        <Modal visible={showFilterModal} transparent animationType="fade">
+          <TouchableOpacity 
+            style={styles.modalOverlay} 
+            activeOpacity={1} 
+            onPress={() => setShowFilterModal(false)}
+          >
+            <View style={[styles.filterMenu, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.filterMenuTitle, { color: colors.textSecondary }]}>Filter Subjects</Text>
+              {['All', '<75%', '<60%', '<50%'].map(opt => (
+                <TouchableOpacity
+                  key={opt}
+                  style={[
+                    styles.filterOption, 
+                    filterMode === opt && { backgroundColor: colors.primary + '10' }
+                  ]}
+                  onPress={() => { setFilterMode(opt); setShowFilterModal(false); }}
+                >
+                  <Text style={[styles.filterOptionText, { color: filterMode === opt ? colors.primary : colors.textPrimary }]}>
+                    {opt === 'All' ? 'All Subjects' : `Less than ${opt.replace('<', '')}`}
+                  </Text>
+                  {filterMode === opt && <MaterialIcons name="check" size={18} color={colors.primary} />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Sticky Bottom Action Bar */}
+        <View style={[styles.bottomBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: colors.primary }]}
+            onPress={() => router.push('/(attendance)/AttendanceHistoryScreen')}
+            activeOpacity={0.85}
+          >
+            <MaterialIcons name="check-circle" size={22} color="#ffffff" style={{ marginRight: 8 }} />
+            <Text style={styles.actionButtonText}>Mark Attendance</Text>
+          </TouchableOpacity>
+        </View>
 
       </SafeAreaView>
     </View>
@@ -242,16 +298,7 @@ const styles = StyleSheet.create({
   statLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: THEME.fonts.medium, marginBottom: 2 },
   statValue: { color: '#fff', fontSize: 14, fontFamily: THEME.fonts.bold },
 
-  infoBanner: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 8, 
-    padding: 14, 
-    borderRadius: 14,
-    marginBottom: 20 
-  },
-  infoText: { fontSize: 12, fontFamily: THEME.fonts.medium },
-  
+
   listHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -260,4 +307,69 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2
   },
   sectionTitle: { fontSize: 16, fontFamily: THEME.fonts.bold },
+  
+  // Sticky Bottom Bar Styles
+  bottomBar: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  actionButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontFamily: THEME.fonts.bold,
+  },
+  
+  // Filter Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: 100,
+    paddingRight: 20,
+  },
+  filterMenu: {
+    width: 210,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingVertical: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+  },
+  filterMenuTitle: {
+    fontSize: 12,
+    fontFamily: THEME.fonts.bold,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(150,150,150,0.2)',
+    marginBottom: 4,
+  },
+  filterOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  filterOptionText: {
+    fontSize: 14,
+    fontFamily: THEME.fonts.semiBold,
+  },
 });

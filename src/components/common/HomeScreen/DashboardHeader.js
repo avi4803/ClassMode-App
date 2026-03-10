@@ -4,7 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../../hooks/useTheme';
 
-export const DashboardHeader = ({ userName, section , batch , onPressNotification , onPressSettings, hasUnread}) => {
+export const DashboardHeader = ({ userName, section , batch , lastUpdated, onPressNotification , onPressSettings, hasUnread}) => {
   const colors = useTheme();
 
   return (
@@ -17,7 +17,7 @@ export const DashboardHeader = ({ userName, section , batch , onPressNotificatio
               Hey, {userName} 👋
             </Text>
             <Text style={[styles.subText, { color: colors.textSecondary }]}>
-              {batch} • {section}
+              {batch} • {section} {lastUpdated ? ` • ${lastUpdated.replace('Updated: ', '')}` : ''}
             </Text>
           </View>
 

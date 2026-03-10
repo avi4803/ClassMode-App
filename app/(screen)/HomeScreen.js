@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useContext, useEffect } from "react";
-import { View, Text, ScrollView, StyleSheet, StatusBar, ActivityIndicator, RefreshControl, DeviceEventEmitter } from "react-native";
+import { View, Text, ScrollView, StyleSheet, StatusBar, ActivityIndicator, RefreshControl, DeviceEventEmitter, Linking ,TouchableOpacity} from "react-native";
 import { useTheme } from "../../src/hooks/useTheme";
 import { useRef } from "react";
 import { router, useFocusEffect } from "expo-router";
@@ -21,6 +21,7 @@ import AppToast from "../../src/components/common/AppToast";
 
 import { AuthContext } from "../../src/context/AuthContext";
 import authService from "../../src/services/authService";
+import attendanceService from "../../src/services/attendanceService";
 
 const CACHE_KEY = 'DASHBOARD_DATA';
 
@@ -31,6 +32,7 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', timestamp: 0 });
+  const [lastUpdated, setLastUpdated] = useState("");
 
   const scrollRef = useRef(null);
   useScrollToTop(scrollRef);
@@ -40,14 +42,14 @@ export default function DashboardScreen() {
     user: { name: "Student", section: "-", batch: "-" },
     stats: { total: 0, cancelled: 0 },
     upNext: null,
-    attendance: { percentage: 0 },
+    attendance: { percentage: 0, present: 0, waiting: 0, absent: 0, dateRange: "Current" },
     classes: [],
     notifications: [],
     roles: []
   });
 
   const transformData = (apiData) => {
-    const { user, schedule, attendance } = apiData;
+    const { user, schedule, attendance, attendanceStats } = apiData;
     
     // Transform User Data
     const userData = {
@@ -97,11 +99,19 @@ export default function DashboardScreen() {
        };
     }
 
+    const statsSource = (attendanceStats?.overall || attendance?.overall || {});
+
     return {
         user: userData,
         stats,
         upNext: upNext ,
-        attendance: { percentage: attendance.overall.percentage },
+        attendance: { 
+            percentage: Math.round(parseFloat(statsSource.percentage || 0)),
+            present: statsSource.present || 0,
+            total: statsSource.total || 0,
+            absent: Math.max(0, (statsSource.total || 0) - (statsSource.present || 0)),
+            dateRange: apiData.schedule?.dateRange || "Current Semester"
+        },
         classes,
         notifications: apiData.notifications || [],
         roles: user.role || []
@@ -117,15 +127,29 @@ export default function DashboardScreen() {
           const parsed = JSON.parse(cached);
           setData(transformData(parsed));
           setLoading(false);
+          // Still fetch in background to ensure freshness
+          fetchDashboardData(true, true);
           return;
         }
       }
 
-      const response = await authService.getDashboard(userToken);
+      // Fetch both dashboard and accurate attendance stats
+      const [dashResponse, statsResponse] = await Promise.all([
+        authService.getDashboard(userToken),
+        attendanceService.getSubjectAnalytics(userToken)
+      ]);
       
-      if (response.success && response.data) {
-        await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(response.data));
-        setData(transformData(response.data));
+      if (dashResponse.success && dashResponse.data) {
+        const combinedData = {
+          ...dashResponse.data,
+          attendanceStats: statsResponse.data || statsResponse // Structure check
+        };
+        await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(combinedData));
+        setData(transformData(combinedData));
+        
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+        setLastUpdated(`Updated: ${timeStr}`);
       }
     } catch (error) {
       console.log("Dashboard Fetch Error", error);
@@ -199,6 +223,18 @@ export default function DashboardScreen() {
     }
   };
 
+  const handleReportBug = () => {
+    // Replace with your Bug Report Form link
+    const bugUrl = "https://forms.gle/YMEeHQDMwp78zFTeA";
+    Linking.openURL(bugUrl).catch((err) => console.error("Couldn't load page", err));
+  };
+
+  const handleRequestFeature = () => {
+    // Replace with your Feature Request Form link
+    const featureUrl = "https://forms.gle/2CRYDEz4fPxHuU2z9";
+    Linking.openURL(featureUrl).catch((err) => console.error("Couldn't load page", err));
+  };
+
   const filteredClasses = data.classes.filter(item => {
     if (filter === "All") return true;
     return item.status === filter.toLowerCase();
@@ -221,6 +257,7 @@ export default function DashboardScreen() {
         userName={data.user.name} 
         section={data.user.section}
         batch={data.user.batch}
+        lastUpdated={lastUpdated}
         hasUnread={data.notifications?.some(n => !n.isRead)}
         onPressNotification={() => router.push('/NotificationScreen')}
         onPressSettings={() => router.push('/SettingsScreen')}
@@ -287,7 +324,7 @@ export default function DashboardScreen() {
         {/* 6. Quick Actions */}
         <View style={styles.section}>
           <Text style={styles.quickHeader}>QUICK ACTIONS</Text>
-          <View style={styles.grid}>
+          <View style={[styles.grid, { marginBottom: 12 }]}>
             <QuickAction 
                icon="qr-code-scanner" 
                label="Scan" 
@@ -295,6 +332,32 @@ export default function DashboardScreen() {
                onPress={handleScanPress} 
             />
             <QuickAction icon="pin-drop" label="Mark" onPress={() => console.log('Mark')} />
+          </View>
+
+          <View style={{ gap: 10 }}>
+            <TouchableOpacity 
+              activeOpacity={0.7} 
+              onPress={handleReportBug}
+              style={[styles.wideAction, { backgroundColor: colors.cardSlate }]}
+            >
+              <View style={[styles.wideIconBox, { backgroundColor: colors.background }]}>
+                <MaterialIcons name="bug-report" size={22} color="#f43f5e" />
+              </View>
+              <Text style={[styles.wideText, { color: colors.textPrimary }]}>Report a Bug</Text>
+              <MaterialIcons name="chevron-right" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              activeOpacity={0.7} 
+              onPress={handleRequestFeature}
+              style={[styles.wideAction, { backgroundColor: colors.cardSlate }]}
+            >
+              <View style={[styles.wideIconBox, { backgroundColor: colors.background }]}>
+                <MaterialIcons name="lightbulb" size={22} color="#eab308" />
+              </View>
+              <Text style={[styles.wideText, { color: colors.textPrimary }]}>Request New Feature</Text>
+              <MaterialIcons name="chevron-right" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -317,7 +380,7 @@ const styles = StyleSheet.create({
   sectionTitle: { 
     fontSize: 22, 
     fontFamily: 'Urbanist_700Bold', 
-    marginBottom: 16 
+    marginBottom: 16
   },
   quickHeader: { 
     fontSize: 12, 
@@ -358,5 +421,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'Urbanist_500Medium',
     textAlign: 'center'
+  },
+  wideAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 16,
+    gap: 12,
+  },
+  wideIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wideText: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: 'Urbanist_700Bold'
   }
 });

@@ -158,6 +158,19 @@ const cancelClass = async (token, id, reason = "Faculty is on leave") => {
   }
 };
 
+const deleteUserAccount = async (token, userId, password) => {
+  try {
+    const response = await client.delete(`/user/${userId}`, {
+      headers: { 'x-access-token': token },
+      data: { password }
+    });
+    return response.data;
+  } catch (error) {
+    console.log("Delete Account Error", error);
+    throw error.response ? error.response.data : { success: false, message: error.message || 'Network Error' };
+  }
+};
+
 const rescheduleClass = async (token, id, data) => {
   try {
     const response = await client.post(`/weekly-session/classes/${id}/reschedule`, data, {
@@ -277,4 +290,5 @@ export default {
   forgotPassword,
   verifyResetOtp,
   resetPassword,
+  deleteUserAccount,
 };

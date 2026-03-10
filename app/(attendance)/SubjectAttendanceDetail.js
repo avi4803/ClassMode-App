@@ -29,6 +29,8 @@ import { THEME } from '../../src/constants/colors';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AuthContext } from '../../src/context/AuthContext';
 import attendanceService from '../../src/services/attendanceService';
+import DateRangeModal from '../../src/components/common/AttendanceScreen/DateRangeModal';
+import CustomAlert from '../../src/components/common/CustomAlert';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const CIRCLE_LENGTH = 314; // 2 * PI * 50
@@ -175,132 +177,26 @@ const HistoryItem = ({ id, date, time, status, colors, onToggle }) => {
   );
 };
 
-const CalendarView = ({ colors, history }) => {
-  // Simple dynamic calendar for the current month (Feb 2026 for demonstration)
-  // In a real app, you'd use a library like date-fns or moment
-  const monthName = "February 2026";
-  const daysInMonth = 28;
-  const startDay = 0; // Sunday
-
-  const days = [];
-  // Add padding for start day
-  for (let i = 0; i < startDay; i++) {
-    days.push({ day: 31 - (startDay - i - 1), month: 'prev' });
-  }
-  // Add current month days
-  for (let i = 1; i <= daysInMonth; i++) {
-    const dateStr = `2026-02-${i < 10 ? '0' + i : i}`;
-    const record = history.find(r => r.date === dateStr);
-    days.push({ 
-      day: i, 
-      month: 'curr', 
-      status: record ? (record.status === 'Present' ? 'Present' : 'Absent') : null,
-      selected: i === 12 // Default selected for demo
-    });
-  }
-  // Add next month padding
-  const remaining = 42 - days.length;
-  for (let i = 1; i <= remaining; i++) {
-    days.push({ day: i, month: 'next' });
-  }
-
-  const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-
-  return (
-    <View style={[styles.calendarCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <View style={styles.calendarHeader}>
-        <TouchableOpacity><MaterialIcons name="chevron-left" size={24} color={colors.textSecondary} /></TouchableOpacity>
-        <Text style={[styles.calendarMonth, { color: colors.textPrimary }]}>{monthName}</Text>
-        <TouchableOpacity><MaterialIcons name="chevron-right" size={24} color={colors.textSecondary} /></TouchableOpacity>
-      </View>
-
-      <View style={styles.weekdayRow}>
-        {weekdays.map((wd, i) => (
-          <Text key={i} style={styles.weekdayText}>{wd}</Text>
-        ))}
-      </View>
-
-      <View style={styles.calendarGrid}>
-        {days.map((item, index) => {
-          const isCurr = item.month === 'curr';
-          const hasStatus = !!item.status;
-          const isPresent = item.status === 'Present';
-          
-          return (
-            <View 
-              key={index} 
-              style={[
-                styles.dayCell,
-                !isCurr && { opacity: 0.2 },
-                item.selected && { ringWidth: 2, ringColor: colors.primary, backgroundColor: colors.primary + '10' },
-                item.selected && styles.selectedDay,
-                hasStatus && { 
-                  backgroundColor: isPresent ? colors.statusPerfect + '10' : colors.statusCritical + '10',
-                  borderColor: isPresent ? colors.statusPerfect + '20' : colors.statusCritical + '20',
-                  borderWidth: 1,
-                  borderRadius: 8
-                }
-              ]}
-            >
-              <Text style={[
-                styles.dayText, 
-                { color: isCurr ? colors.textPrimary : colors.textSecondary },
-                item.selected && { color: colors.primary, fontFamily: THEME.fonts.bold }
-              ]}>
-                {item.day}
-              </Text>
-              {hasStatus && (
-                <View style={[
-                  styles.dot, 
-                  { backgroundColor: isPresent ? colors.statusPerfect : colors.statusCritical }
-                ]} />
-              )}
-            </View>
-          );
-        })}
-      </View>
-      
-      <TouchableOpacity style={styles.expandCalendar}>
-        <MaterialIcons name="open-in-full" size={18} color={colors.textSecondary} />
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-// Component Import
-import DateRangeModal from '../../src/components/common/AttendanceScreen/DateRangeModal';
-
 export default function SubjectAttendanceDetail() {
-  const { id, subject: initialSubject, professor: initialProfessor, percentage: initialPercentageRaw, attended: initialAttendedRaw, total: initialTotalRaw } = useLocalSearchParams();
   const colors = useTheme();
   const { userToken } = useContext(AuthContext);
-  
-  const initialPercentage = parseInt(initialPercentageRaw) || 0;
-  const initialAttended = parseInt(initialAttendedRaw) || 0;
-  const initialTotal = parseInt(initialTotalRaw) || 0;
+  const { 
+    id, 
+    subjectName: initialSubject, 
+    professor: initialProfessor, 
+    percentage: initialPercentage = 0, 
+    attended: initialAttended = 0, 
+    total: initialTotal = 0 
+  } = useLocalSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState(null);
-  const [viewMode, setViewMode] = useState('list'); // 'list' | 'calendar'
+  const [alertConfig, setAlertConfig] = useState({ visible: false, title: '', message: '', type: 'default' });
   
   // Date Filter State
   const [dateRange, setDateRange] = useState({ start: null, end: null });
   const [showModal, setShowModal] = useState(false);
-
-  const toggleAnim = useSharedValue(0);
-
-  useEffect(() => {
-    toggleAnim.value = withTiming(viewMode === 'calendar' ? 1 : 0, {
-      duration: 400,
-      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-    });
-  }, [viewMode]);
-
-  const animatedToggleStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: toggleAnim.value * 112 }], 
-    zIndex: 10,
-  }));
 
   const fetchDetailData = async (silent = false) => {
     try {
@@ -398,7 +294,12 @@ export default function SubjectAttendanceDetail() {
       }
     } catch (error) {
       console.error("Fetch Detail Error:", error);
-      if (!silent) Alert.alert("Error", "Could not fetch subject details.");
+      if (!silent) setAlertConfig({
+        visible: true,
+        title: "Error",
+        message: "Could not fetch subject details. Please check your connection.",
+        type: 'default'
+      });
     } finally {
       if (!silent) setLoading(false);
       setRefreshing(false);
@@ -423,7 +324,12 @@ export default function SubjectAttendanceDetail() {
     } catch (error) {
       console.error("Marking Error:", error);
       setData(prev => ({ ...prev, history: previousHistory }));
-      Alert.alert("Error", "Could not update attendance.");
+      setAlertConfig({
+        visible: true,
+        title: "Error",
+        message: "Could not update attendance. Please try again later.",
+        type: 'default'
+      });
     }
   };
 
@@ -519,24 +425,11 @@ export default function SubjectAttendanceDetail() {
           {/* History / Visual Header */}
           <View style={styles.historyHeader}>
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-              {viewMode === 'list' ? 'History' : 'Visual Overview'}
+              History
             </Text>
             <View style={styles.headerActions}>
-              <Animated.View style={animatedToggleStyle}>
-                <TouchableOpacity 
-                  style={[styles.modeToggle, viewMode === 'calendar' && { backgroundColor: colors.primary + '15' }]}
-                  onPress={() => setViewMode(viewMode === 'list' ? 'calendar' : 'list')}
-                >
-                  <MaterialIcons 
-                    name={viewMode === 'list' ? "calendar-month" : "list"} 
-                    size={20} 
-                    color={viewMode === 'calendar' ? colors.primary : colors.textSecondary} 
-                  />
-                </TouchableOpacity>
-              </Animated.View>
               <TouchableOpacity 
-                style={[styles.filterBtn, { opacity: viewMode === 'list' ? 1 : 0 }]}
-                pointerEvents={viewMode === 'list' ? 'auto' : 'none'}
+                style={styles.filterBtn}
                 onPress={handleFilterPress}
               >
                 <MaterialIcons name="calendar-today" size={14} color={dateRange.start ? colors.primary : colors.textSecondary} />
@@ -548,50 +441,27 @@ export default function SubjectAttendanceDetail() {
             </View>
           </View>
 
-          {viewMode === 'list' ? (
-            <Animated.View 
-              entering={FadeIn.duration(400)} 
-              exiting={FadeOut.duration(200)}
-              style={styles.historyList}
-            >
-              {data.history.length > 0 ? (
-                data.history.map(item => (
-                  <HistoryItem 
-                    key={item.id} 
-                    {...item} 
-                    colors={colors} 
-                    onToggle={handleToggleAttendance} 
-                  />
-                ))
-              ) : (
-                <View style={styles.emptyHistory}>
-                  <MaterialIcons name="event-note" size={48} color={colors.border} />
-                  <Text style={{ color: colors.textSecondary, marginTop: 8 }}>No history available</Text>
-                </View>
-              )}
-            </Animated.View>
-          ) : (
-            <Animated.View 
-              entering={FadeInDown.duration(400).springify()} 
-              exiting={FadeOut.duration(200)}
-              style={styles.calendarModeWrapper}
-            >
-              <CalendarView colors={colors} history={data.history} />
-              <View style={styles.calendarDetailInfo}>
-                <Text style={[styles.detailTitle, { color: colors.textPrimary }]}>Day Details: Nov 12</Text>
+          <Animated.View 
+            entering={FadeIn.duration(400)} 
+            exiting={FadeOut.duration(200)}
+            style={styles.historyList}
+          >
+            {data.history.length > 0 ? (
+              data.history.map(item => (
                 <HistoryItem 
-                  date="Nov 12, 2023" 
-                  time="11:00 AM • Lecture Hall A" 
-                  status="Present" 
+                  key={item.id} 
+                  {...item} 
                   colors={colors} 
+                  onToggle={handleToggleAttendance} 
                 />
-                <View style={styles.calendarHint}>
-                  <MaterialIcons name="event-note" size={24} color={colors.border} />
-                  <Text style={[styles.hintText, { color: colors.textSecondary }]}>Tap a marked date to see details</Text>
-                </View>
+              ))
+            ) : (
+              <View style={styles.emptyHistory}>
+                <MaterialIcons name="event-note" size={48} color={colors.border} />
+                <Text style={{ color: colors.textSecondary, marginTop: 8 }}>No history available</Text>
               </View>
-            </Animated.View>
-          )}
+            )}
+          </Animated.View>
 
           {/* Bottom Actions */}
           <View style={styles.actions}>
@@ -614,6 +484,14 @@ export default function SubjectAttendanceDetail() {
           onClose={() => setShowModal(false)}
           onApply={handleApplyRange}
           initialRange={dateRange}
+        />
+
+        <CustomAlert 
+          visible={alertConfig.visible}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
         />
       </SafeAreaView>
     </View>

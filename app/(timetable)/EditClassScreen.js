@@ -8,10 +8,10 @@ import { useTheme } from "../../src/hooks/useTheme";
 import { TimePickerInput } from "../../src/components/common/TimePickerInput";
 import { TypeSelector } from "../../src/components/common/TypeSelector";
 import { Dropdown } from "../../src/components/common/Dropdown";
-import { ConfirmationModal } from "../../src/components/common/ConfirmationModal";
 
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { AuthContext } from "../../src/context/AuthContext";
+import CustomAlert from "../../src/components/common/CustomAlert";
 import authService from "../../src/services/authService";
 
 
@@ -64,6 +64,16 @@ export default function EditClassScreen() {
     newDate: existingClass?.date ? new Date(existingClass.date) : (initialDay ? getNextDateForDay(initialDay) : new Date())
   });
 
+  const [alertConfig, setAlertConfig] = useState({ 
+    visible: false, 
+    title: "", 
+    message: "", 
+    confirmLabel: "OK", 
+    cancelLabel: null,
+    onConfirm: null,
+    type: 'default'
+  });
+
   const { userToken } = React.useContext(AuthContext);
   const [subjects, setSubjects] = useState([]);
 
@@ -106,10 +116,14 @@ export default function EditClassScreen() {
   const handleSave = async () => {
     try {
       if (!isEditing) {
-          if (!form.subject) {
-            Alert.alert("Required", "Please select a subject");
-            return;
-          }
+        if (!form.subject) {
+          setAlertConfig({
+            visible: true,
+            title: "Required",
+            message: "Please select a subject to add an extra class.",
+          });
+          return;
+        }
 
         // Add Extra Class
         const startTimeStr = formatTimeHHMM(form.startTime);
@@ -129,9 +143,18 @@ export default function EditClassScreen() {
         const res = await authService.addExtraClass(userToken, payload);
         if(res.success) {
             DeviceEventEmitter.emit('REFRESH_DATA');
-            Alert.alert("Success", "Extra class added successfully", [{ text: "OK", onPress: () => router.back() }]);
+            setAlertConfig({
+                visible: true,
+                title: "Success",
+                message: "Extra class added successfully",
+                onConfirm: () => router.back()
+            });
         } else {
-             Alert.alert("Error", res.message || "Failed to add class");
+             setAlertConfig({
+                visible: true,
+                title: "Error",
+                message: res.message || "Failed to add class"
+             });
         }
 
       } else {
@@ -148,20 +171,41 @@ export default function EditClassScreen() {
          
          if (res.success) {
             DeviceEventEmitter.emit('REFRESH_DATA');
-            Alert.alert("Success", "Class rescheduled successfully", [{ text: "OK", onPress: () => router.back() }]);
+            setAlertConfig({
+                visible: true,
+                title: "Success",
+                message: "Class rescheduled successfully",
+                onConfirm: () => router.back()
+            });
          } else {
-            Alert.alert("Error", res.message || "Failed to reschedule class");
+            setAlertConfig({
+                visible: true,
+                title: "Error",
+                message: res.message || "Failed to reschedule class"
+            });
          }
       }
     } catch (error) {
-        Alert.alert("Error", error.message || "Something went wrong");
+        setAlertConfig({
+            visible: true,
+            title: "Error",
+            message: error.message || "Something went wrong"
+        });
     }
   };
 
   const [modalVisible, setModalVisible] = useState(false);
 
   const handleDelete = () => {
-    setModalVisible(true);
+    setAlertConfig({
+      visible: true,
+      title: "Cancel this class?",
+      message: "This will notify all students that this class instance is cancelled.",
+      confirmLabel: "Cancel Class",
+      cancelLabel: "Discard",
+      type: 'destructive',
+      onConfirm: handleConfirmDelete
+    });
   };
 
   const handleConfirmDelete = async () => {
@@ -172,13 +216,22 @@ export default function EditClassScreen() {
         const res = await authService.cancelClass(userToken, classId, "Faculty is on leave");
         if (res.success) {
           DeviceEventEmitter.emit('REFRESH_DATA');
-          Alert.alert("Success", "Class cancelled successfully", [{ text: "OK", onPress: () => router.back() }]);
+          setAlertConfig({
+            visible: true,
+            title: "Success",
+            message: "Class cancelled successfully",
+            onConfirm: () => router.back()
+          });
         }
       } else {
         router.back();
       }
     } catch (error) {
-       Alert.alert("Error", error.message || "Something went wrong");
+       setAlertConfig({
+         visible: true,
+         title: "Error",
+         message: error.message || "Something went wrong"
+       });
     }
   };
 
@@ -306,15 +359,19 @@ export default function EditClassScreen() {
         )}
       </View>
        
-        <ConfirmationModal 
-        visible={modalVisible}
-        title="Cancel this class?"
-        description="This will notify all students that this class instance is cancelled."
-        confirmLabel="Cancel Class"
-        onClose={() => setModalVisible(false)}
-        onConfirm={handleConfirmDelete}
-        isDestructive={true}
-      />
+        <CustomAlert 
+            visible={alertConfig.visible}
+            title={alertConfig.title}
+            message={alertConfig.message}
+            confirmLabel={alertConfig.confirmLabel || "OK"}
+            cancelLabel={alertConfig.cancelLabel}
+            type={alertConfig.type || 'default'}
+            onConfirm={() => {
+                if (alertConfig.onConfirm) alertConfig.onConfirm();
+                setAlertConfig(prev => ({ ...prev, visible: false }));
+            }}
+            onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+        />
       
     </View>
   );
