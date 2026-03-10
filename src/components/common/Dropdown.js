@@ -54,7 +54,7 @@ export const Dropdown = ({ label, value, options, onSelect, placeholder = "Selec
         onPress={() => setVisible(true)}
       >
         <Text style={[styles.value, { color: value ? theme.textPrimary : theme.placeholder, fontFamily: theme.fonts.semiBold }]}>
-          {value ? (typeof options[0] === 'object' ? options.find(o => o.value === value)?.label : value) : placeholder}
+          {value ? ((typeof options[0] === 'object' ? options.find(o => o.value === value)?.label : value) || value) : placeholder}
         </Text>
         <MaterialIcons name="arrow-drop-down" size={24} color={theme.textSecondary} />
       </TouchableOpacity>
@@ -94,7 +94,22 @@ export const Dropdown = ({ label, value, options, onSelect, placeholder = "Selec
                  renderItem={renderItem}
                  style={{ maxHeight: 300 }}
                  ListEmptyComponent={
-                     <Text style={{ padding: 20, textAlign: 'center', color: theme.textSecondary, fontFamily: theme.fonts.medium }}>No options found</Text>
+                     searchQuery ? (
+                         <TouchableOpacity 
+                            style={{ padding: 16, backgroundColor: theme.primary + '15', borderRadius: 8, margin: 10 }}
+                            onPress={() => {
+                                onSelect(searchQuery);
+                                setSearchQuery("");
+                                setVisible(false);
+                            }}
+                         >
+                            <Text style={{ textAlign: 'center', color: theme.primary, fontFamily: theme.fonts.bold }}>
+                                Add "{searchQuery}"
+                            </Text>
+                         </TouchableOpacity>
+                     ) : (
+                         <Text style={{ padding: 20, textAlign: 'center', color: theme.textSecondary, fontFamily: theme.fonts.medium }}>No options found</Text>
+                     )
                  }
                />
             </View>

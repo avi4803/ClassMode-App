@@ -23,6 +23,9 @@ import { useScrollToTop } from "@react-navigation/native";
 
 import { AuthContext } from "../../src/context/AuthContext";
 import authService from "../../src/services/authService";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const CACHE_KEY = 'PROFILE_DATA';
 
 export default function ProfileScreen() {
   const colors = useTheme();
@@ -42,8 +45,21 @@ export default function ProfileScreen() {
     info: []
   });
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (forceRefresh = false) => {
+    if (!userToken) return;
     try {
+      if (!forceRefresh) {
+        const cached = await AsyncStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          setUserData(parsed);
+          setLoading(false);
+          // Still fetch in background to sync any changes
+          fetchProfile(true);
+          return;
+        }
+      }
+
       const response = await authService.getDashboard(userToken);
       if (response.success && response.data) {
         const { user } = response.data;
@@ -51,7 +67,7 @@ export default function ProfileScreen() {
         const details = `${user.batch?.year ? user.batch.year : '-'} · ${user.section?.name ? 'Section ' + user.section.name : '-'}`;
         const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase();
 
-        setUserData({
+        const newUserData = {
           name: user.name,
           initials,
           college: user.college?.name || "-",
@@ -78,7 +94,10 @@ export default function ProfileScreen() {
               isVerified: true, // Assuming true or check backend
             },
           ]
-        });
+        };
+
+        await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(newUserData));
+        setUserData(newUserData);
       }
     } catch (error) {
       console.log("Fetch Profile Error", error);
@@ -94,8 +113,8 @@ export default function ProfileScreen() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchProfile();
-  }, []);
+    fetchProfile(true);
+  }, [userToken]);
 
   // 2. Trigger scroll to top whenever this screen is focused
   // useFocusEffect(

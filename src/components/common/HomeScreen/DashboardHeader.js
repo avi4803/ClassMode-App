@@ -4,7 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../../hooks/useTheme';
 
-export const DashboardHeader = ({ userName, section , batch , lastUpdated, onPressNotification , onPressSettings, hasUnread}) => {
+export const DashboardHeader = ({ userName, section , batch , lastUpdated, onPressNotification , onPressSettings, hasUnread, roles = []}) => {
   const colors = useTheme();
 
   return (
@@ -13,9 +13,22 @@ export const DashboardHeader = ({ userName, section , batch , lastUpdated, onPre
         <View style={styles.container}>
           {/* User Greeting */}
           <View style={styles.userInfo}>
-            <Text style={[styles.greeting, { color: colors.textPrimary }]}>
-              Hey, {userName} 👋
-            </Text>
+            <View style={styles.greetingRow}>
+              <Text style={[styles.greeting, { color: colors.textPrimary }]}>
+                Hey, {userName}
+              </Text>
+              {roles.includes('admin') ? (
+                 <View style={[styles.badge, { backgroundColor: colors.primary + '15' }]}>
+                   <MaterialIcons name="admin-panel-settings" size={12} color={colors.primary} />
+                   <Text style={[styles.badgeText, { color: colors.primary }]}>Admin</Text>
+                 </View>
+              ) : (roles.includes('cr') || roles.includes('local-admin')) ? (
+                 <View style={[styles.badge, { backgroundColor: (colors.accentBlue || '#3b82f6') + '15' }]}>
+                   <MaterialIcons name="stars" size={12} color={colors.accentBlue || '#3b82f6'} />
+                   <Text style={[styles.badgeText, { color: colors.accentBlue || '#3b82f6' }]}>CR</Text>
+                 </View>
+              ) : null}
+            </View>
             <Text style={[styles.subText, { color: colors.textSecondary }]}>
               {batch} • {section} {lastUpdated ? ` • ${lastUpdated.replace('Updated: ', '')}` : ''}
             </Text>
@@ -54,9 +67,28 @@ const styles = StyleSheet.create({
   userInfo: {
     flex: 1,
   },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
   greeting: {
     fontSize: 20,
     fontFamily: 'Urbanist_700Bold',
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 2
+  },
+  badgeText: {
+    fontSize: 9,
+    fontFamily: 'Urbanist_700Bold',
+    textTransform: 'uppercase',
   },
   subText: {
     fontSize: 12,

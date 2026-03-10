@@ -119,6 +119,7 @@ export default function DashboardScreen() {
   };
 
   const fetchDashboardData = async (forceRefresh = false, silent = false) => {
+    if (!userToken) return;
     try {
       if (!silent && !forceRefresh) {
         // Try loading from cache first only if not forced or silent
@@ -261,6 +262,7 @@ export default function DashboardScreen() {
         hasUnread={data.notifications?.some(n => !n.isRead)}
         onPressNotification={() => router.push('/NotificationScreen')}
         onPressSettings={() => router.push('/SettingsScreen')}
+        roles={data.roles}
       />
 
       <ScrollView 

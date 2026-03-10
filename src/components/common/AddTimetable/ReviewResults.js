@@ -50,15 +50,17 @@ export const ReviewResults = ({ data, onBack, onVerify }) => {
   );
 
   const updateClass = (originalIndex, field, value) => {
-      const updated = [...localSchedule];
-      updated[originalIndex] = { ...updated[originalIndex], [field]: value };
-      
-      // Update timeString if start/end changes
-      if (field === 'startTime' || field === 'endTime') {
-          updated[originalIndex].timeString = `${updated[originalIndex].startTime} - ${updated[originalIndex].endTime}`;
-      }
-      
-      setLocalSchedule(updated);
+      setLocalSchedule(prev => {
+          const updated = [...prev];
+          updated[originalIndex] = { ...updated[originalIndex], [field]: value };
+          
+          // Update timeString if start/end changes
+          if (field === 'startTime' || field === 'endTime') {
+              updated[originalIndex].timeString = `${updated[originalIndex].startTime} - ${updated[originalIndex].endTime}`;
+          }
+          
+          return updated;
+      });
   };
   
   const deleteClass = (originalIndex) => {
@@ -222,8 +224,11 @@ const ResultCard = ({ item, subjects, updateClass, lowConfidence, onDelete }) =>
     
     if (selected) {
         updateClass(item.originalIndex, 'subjectCode', selected.subjectCode);
-        // Optional: Auto-fill room if available
-        // if (selected.room) updateClass(item.originalIndex, 'room', selected.room);
+        
+        // Auto-fill room if available and the field is empty
+        if (selected.room && !item.room) {
+            updateClass(item.originalIndex, 'room', selected.room);
+        }
     }
   };
   

@@ -27,7 +27,10 @@ const CACHE_KEY = 'TIMETABLE_DATA';
 export default function TimetableScreen() {
   const colors = useTheme();
   const { userToken } = useContext(AuthContext);
-  const [selectedDay, setSelectedDay] = useState("Tue");
+  const [selectedDay, setSelectedDay] = useState(() => {
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'short' });
+    return ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].includes(today) ? today : "Mon";
+  });
   const [scheduleData, setScheduleData] = useState({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -103,6 +106,7 @@ export default function TimetableScreen() {
   };
 
   const fetchTimetable = async (forceRefresh = false) => {
+    if (!userToken) return;
     try {
       if (!forceRefresh) {
         const cached = await AsyncStorage.getItem(CACHE_KEY);
@@ -111,6 +115,17 @@ export default function TimetableScreen() {
           setScheduleData(transformData(parsed));
           setScheduleNotFound(parsed.length === 0);
           setLoading(false);
+          
+          // Still fetch the role asynchronously to render admin FAB
+          if (userRole.length === 0) {
+            authService.getDashboard(userToken)
+              .then(dashRes => {
+                if (dashRes.success && dashRes.data?.user?.role) {
+                  setUserRole(dashRes.data.user.role);
+                }
+              })
+              .catch(err => console.log("Background role fetch error", err));
+          }
           return;
         }
       }
