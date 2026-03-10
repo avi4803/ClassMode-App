@@ -235,6 +235,44 @@ export default function EditClassScreen() {
     }
   };
 
+  const handleHardDelete = () => {
+    setAlertConfig({
+      visible: true,
+      title: "Permanent Delete?",
+      message: "This will completely erase the class block and wipe any attendance previously marked by students for this session. This action cannot be undone.",
+      confirmLabel: "Yes, Delete Class",
+      cancelLabel: "Cancel",
+      type: 'destructive',
+      onConfirm: handleConfirmHardDelete
+    });
+  };
+
+  const handleConfirmHardDelete = async () => {
+    try {
+      const classId = existingClass?.id || existingClass?._id;
+      if (classId) {
+        const res = await authService.hardDeleteClass(userToken, classId);
+        if (res.success || res.message) {
+          DeviceEventEmitter.emit('REFRESH_DATA');
+          setAlertConfig({
+            visible: true,
+            title: "Success",
+            message: "Class and attendance were permanently deleted.",
+            onConfirm: () => router.back()
+          });
+        }
+      } else {
+        router.back();
+      }
+    } catch (error) {
+       setAlertConfig({
+         visible: true,
+         title: "Deletion Failed",
+         message: error.message || "Failed to delete class"
+       });
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       {/* Header */}
@@ -242,8 +280,8 @@ export default function EditClassScreen() {
         <View style={{ width: 40 }} />
         <Text style={[styles.headerTitle, { color: theme.textPrimary, fontFamily: theme.fonts.bold }]}>{isEditing ? "Edit Class" : "Add Extra Class"}</Text>
         {isEditing ? (
-            <TouchableOpacity onPress={handleDelete}>
-              <MaterialIcons name="event-busy" size={24} color={theme.textSecondary} />
+            <TouchableOpacity onPress={handleHardDelete}>
+              <MaterialIcons name="delete-outline" size={26} color={theme.danger || '#ef4444'} />
             </TouchableOpacity>
         ) : <View style={{ width: 40 }} />}
       </SafeAreaView>

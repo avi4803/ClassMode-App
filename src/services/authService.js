@@ -171,6 +171,18 @@ const deleteUserAccount = async (token, userId, password) => {
   }
 };
 
+const hardDeleteClass = async (token, classId) => {
+  try {
+    const response = await client.delete(`/weekly-session/classes/${classId}`, {
+      headers: { 'x-access-token': token }
+    });
+    return response.data;
+  } catch (error) {
+    console.log("Hard Delete Class Error", error);
+    throw error.response ? error.response.data : { success: false, message: error.message || 'Network Error' };
+  }
+};
+
 const rescheduleClass = async (token, id, data) => {
   try {
     const response = await client.post(`/weekly-session/classes/${id}/reschedule`, data, {
@@ -286,6 +298,7 @@ export default {
   updateReminderSettings,
   cancelClass,
   rescheduleClass,
+  hardDeleteClass,
 
   forgotPassword,
   verifyResetOtp,

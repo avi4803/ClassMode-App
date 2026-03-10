@@ -61,8 +61,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     elevation: 4,
   },
-  name: { color: "#fff", fontSize: 24, fontFamily: 'Urbanist_800ExtraBold' },
-  subText: { color: "rgba(255,255,255,0.8)", fontSize: 14, fontFamily: 'Urbanist_600SemiBold', marginTop: 4 },
+  name: { color: "#fff", fontSize: 24, fontFamily: 'Urbanist_800ExtraBold', textAlign: 'center' },
+  subText: { color: "rgba(255,255,255,0.8)", fontSize: 14, fontFamily: 'Urbanist_600SemiBold', marginTop: 4, textAlign: 'center' },
   editBtn: {
     marginTop: 24,
     width: "100%",
