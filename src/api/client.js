@@ -19,7 +19,7 @@ const getBaseUrl = () => {
   return 'http://10.0.1.90:3000/api/v1';
 };
 
-const BASE_URL = "http://10.0.1.90:3000/api/v1";
+const BASE_URL = "http://192.168.40.182:3000/api/v1";
 // "http://3.6.224.83:3000/api/v1"
 
 const client = axios.create({

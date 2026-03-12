@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useTheme } from '../../../hooks/useTheme';
 import { THEME } from '../../../constants/colors';
+import HolidayCard from '../HolidayCard';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -70,7 +71,14 @@ const CircularProgress = ({ percentage, color }) => {
 /**
  * Record Item Component
  */
-const RecordItem = ({ id, subject, date, time, status, colors, onToggle }) => {
+const RecordItem = ({ id, subject, date, time, status, colors, onToggle, isHoliday, cancellationReason }) => {
+  if (isHoliday) {
+    return (
+      <View style={{ marginVertical: 8 }}>
+        <HolidayCard reason={cancellationReason} />
+      </View>
+    );
+  }
   const isPresent = status.toLowerCase() === 'present';
   const isAbsent = status.toLowerCase() === 'absent';
   const isCancelled = status.toLowerCase() === 'cancelled' || status.toLowerCase() === 'rescheduled';

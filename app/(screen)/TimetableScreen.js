@@ -11,6 +11,7 @@ import {
   ToastAndroid,
   Platform,
   DeviceEventEmitter,
+  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -18,6 +19,7 @@ import { useTheme } from "../../src/hooks/useTheme";
 import { TimetableCard } from "../../src/components/common/TimetableScreen/TimetableCard";
 import AppToast from "../../src/components/common/AppToast";
 import { router } from "expo-router";
+import HolidayCard from "../../src/components/common/HolidayCard";
 import { AuthContext } from "../../src/context/AuthContext";
 import authService from "../../src/services/authService";
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -37,6 +39,35 @@ export default function TimetableScreen() {
   const [scheduleNotFound, setScheduleNotFound] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', timestamp: 0 });
   const [userRole, setUserRole] = useState([]);
+  
+  // FAB Animation States
+  const [isFabOpen, setIsFabOpen] = useState(false);
+  const fabAnimation = useRef(new Animated.Value(0)).current;
+
+  const toggleFab = () => {
+    const toValue = isFabOpen ? 0 : 1;
+    Animated.spring(fabAnimation, {
+      toValue,
+      friction: 5,
+      useNativeDriver: true,
+    }).start();
+    setIsFabOpen(!isFabOpen);
+  };
+
+  const fabRotation = fabAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "45deg"],
+  });
+
+  const fabOption1Y = fabAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -70],
+  });
+
+  const fabOption2Y = fabAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -135],
+  });
 
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const dayMap = { Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed", Thursday: "Thu", Friday: "Fri", Saturday: "Sat" };
@@ -85,6 +116,8 @@ export default function TimetableScreen() {
        if (grouped[shortDay]) {
             grouped[shortDay].push({
                 id: item._id,
+                isHoliday: !!item.isHoliday,
+                cancellationReason: item.cancellationReason || item.title || extractName(item.subject),
                 subjectId: item.subject?._id || item.subject,
                 title: item.title || extractName(item.subject) || "No Title",
                 time: `${formatTime(item.startTime)} - ${formatTime(item.endTime)}`,
@@ -94,7 +127,6 @@ export default function TimetableScreen() {
                 status: (item.status === 'scheduled' || item.status === 'active' || !item.status) 
                         ? getStatus(shortDay, item.startTime, item.endTime) 
                         : item.status, 
-                cancellationReason: item.cancellationReason,
                 startTime: item.startTime,
                 endTime: item.endTime,
                 day: dateObj.toLocaleDateString('en-US', { weekday: 'long' }),
@@ -274,6 +306,8 @@ export default function TimetableScreen() {
                     Free Slot ({item.time})
                   </Text>
                 </View>
+              ) : item.isHoliday ? (
+                <HolidayCard key={item.id} reason={item.cancellationReason} />
               ) : (
                 <TouchableOpacity
                   key={item.id}
@@ -313,14 +347,51 @@ export default function TimetableScreen() {
         )}
       </ScrollView>
 
-      {/* Floating Action Button */}
+      {/* Floating Action Button / Menu */}
       {userRole.some(r => ['admin', 'local-admin'].includes(r)) && (
-        <TouchableOpacity
-          style={[styles.fab, { backgroundColor: colors.primary }]}
-          onPress={()=> router.push({ pathname: "EditClassScreen", params: { initialDay: selectedDay } })}
-        >
-          <MaterialIcons name="add" size={32} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.fabContainer}>
+          
+          {/* Holiday Option */}
+          <Animated.View style={[styles.fabOptionItem, { transform: [{ translateY: fabOption2Y }], opacity: fabAnimation }]}>
+             <Text style={styles.fabOptionText}>Holiday</Text>
+             <TouchableOpacity 
+               style={[styles.fabOptionBtn, { backgroundColor: '#10b981' }]} // Green marker for holiday
+               activeOpacity={0.8}
+               onPress={() => { 
+                 toggleFab(); 
+                 router.push({ pathname: "HolidayScreen" }); 
+               }}
+             >
+               <MaterialIcons name="beach-access" size={22} color="#fff" />
+             </TouchableOpacity>
+          </Animated.View>
+
+          {/* Class Option */}
+          <Animated.View style={[styles.fabOptionItem, { transform: [{ translateY: fabOption1Y }], opacity: fabAnimation }]}>
+             <Text style={styles.fabOptionText}>Class</Text>
+             <TouchableOpacity 
+               style={[styles.fabOptionBtn, { backgroundColor: colors.accentBlue || '#3b82f6' }]}
+               activeOpacity={0.8}
+               onPress={() => { 
+                 toggleFab(); 
+                 router.push({ pathname: "EditClassScreen", params: { initialDay: selectedDay } }); 
+               }}
+             >
+               <MaterialIcons name="class" size={22} color="#fff" />
+             </TouchableOpacity>
+          </Animated.View>
+
+          {/* Main FAB Toggle */}
+          <TouchableOpacity
+            style={[styles.fab, { backgroundColor: colors.primary }]}
+            onPress={toggleFab}
+            activeOpacity={0.8}
+          >
+            <Animated.View style={{ transform: [{ rotate: fabRotation }] }}>
+              <MaterialIcons name="add" size={32} color="#fff" />
+            </Animated.View>
+          </TouchableOpacity>
+        </View>
       )}
 
       <AppToast 
@@ -363,10 +434,45 @@ const styles = StyleSheet.create({
   mainContent: { padding: 16, paddingBottom: 100 },
   freeSlot: { paddingVertical: 12, alignItems: "center" },
   freeText: { fontSize: 14, fontFamily: 'Urbanist_500Medium', opacity: 0.7 },
-  fab: {
+  fabContainer: {
     position: "absolute",
     bottom: 30,
     right: 24,
+    alignItems: "flex-end",
+    justifyContent: "flex-end",
+    zIndex: 100,
+  },
+  fabOptionItem: {
+    position: 'absolute',
+    flexDirection: 'row',
+    alignItems: 'center',
+    right: 6, // Centers 48px button inside 60px root button
+    bottom: 6,
+    zIndex: 1,
+  },
+  fabOptionText: {
+    color: '#fff',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginRight: 12,
+    fontFamily: 'Urbanist_700Bold',
+    fontSize: 13,
+    width: 80,
+    textAlign: 'center',
+  },
+  fabOptionBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  fab: {
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -376,6 +482,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 8,
+    zIndex: 2,
   },
   emptyState: {
     flex: 1,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { View, Alert, DeviceEventEmitter, Platform } from 'react-native';
+import HolidayCard from '../../src/components/common/HolidayCard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useTheme } from '../../src/hooks/useTheme';
@@ -54,6 +55,8 @@ export default function AttendanceHistoryScreen() {
         
         return {
           id: item._id,
+          isHoliday: item.isHoliday,
+          cancellationReason: item.cancellationReason || item.title || item.subject?.name,
           subject: item.subject?.name || "Unknown",
           date: "Today",
           time: `${item.startTime} - ${item.endTime}`,
@@ -122,6 +125,8 @@ export default function AttendanceHistoryScreen() {
                 
                 return {
                     id: session._id, // Session ID
+                    isHoliday: session.isHoliday,
+                    cancellationReason: session.cancellationReason || marked.subject?.name || "Holiday",
                     subject: marked.subject?.name || "Unknown",
                     date: marked.date,
                     time: session.startTime ? `${session.startTime} - ${session.endTime}` : "",
@@ -139,6 +144,8 @@ export default function AttendanceHistoryScreen() {
                  
                  return {
                     id: session._id,
+                    isHoliday: session.isHoliday,
+                    cancellationReason: session.cancellationReason || session.title || session.subject?.name,
                     subject: session.subject?.name || session.title || "Unknown",
                     date: session.date.split('T')[0],
                     time: `${session.startTime} - ${session.endTime}`,
@@ -162,6 +169,8 @@ export default function AttendanceHistoryScreen() {
 
             return {
               id: item.session?._id || item._id, 
+              isHoliday: item.session?.isHoliday || item.isHoliday,
+              cancellationReason: item.session?.cancellationReason || item.cancellationReason || item.subject?.name,
               subject: item.subject?.name || "Unknown",
               date: item.date,
               time: item.session?.startTime ? `${item.session.startTime} - ${item.session.endTime}` : "",

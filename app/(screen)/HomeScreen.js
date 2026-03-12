@@ -14,6 +14,7 @@ import { DashboardHeader } from "../../src/components/common/HomeScreen/Dashboar
 import { StatCard } from "../../src/components/common/HomeScreen/StatCard";
 import { UpNextCard } from "../../src/components/common/HomeScreen/UpNextCard";
 import { ClassItem } from "../../src/components/common/HomeScreen/ClassItem";
+import HolidayCard from "../../src/components/common/HolidayCard";
 import { AttendanceCard } from "../../src/components/common/HomeScreen/AttendanceCard";
 import { QuickAction } from "../../src/components/common/HomeScreen/QuickAction";
 import { ClassToggle } from "../../src/components/common/HomeScreen/ClassToggle";
@@ -62,6 +63,8 @@ export default function DashboardScreen() {
     const todaysClasses = schedule?.todaysClasses || [];
     const classes = todaysClasses.map(cls => ({
       id: cls._id,
+      isHoliday: cls.isHoliday,
+      cancellationReason: cls.cancellationReason || cls.title || cls.subject?.name,
       title: cls.title || cls.subject?.name || "Untitled Class",
       time: `${formatTime(cls.startTime)} - ${formatTime(cls.endTime)}`,
       location: cls.room || "-",
@@ -71,7 +74,7 @@ export default function DashboardScreen() {
 
     // Stats
     const stats = {
-      total: todaysClasses.length,
+      total: todaysClasses.filter(c => !c.isHoliday).length,
       cancelled: todaysClasses.filter(c => c.status === 'cancelled' || c.status === 'rescheduled').length
     };
 
@@ -82,7 +85,7 @@ export default function DashboardScreen() {
       const currentTime = now.getHours().toString().padStart(2, '0') + ":" + 
                           now.getMinutes().toString().padStart(2, '0');
       
-      const upcoming = list.filter(cls => cls.startTime > currentTime && cls.status !== 'cancelled' && cls.status !== 'rescheduled');
+      const upcoming = list.filter(cls => !cls.isHoliday && cls.startTime > currentTime && cls.status !== 'cancelled' && cls.status !== 'rescheduled');
       return upcoming.sort((a, b) => a.startTime.localeCompare(b.startTime))[0] || null;
     };
 
@@ -308,7 +311,11 @@ export default function DashboardScreen() {
 
           {filteredClasses.length > 0 ? (
             filteredClasses.map((item) => (
-              <ClassItem key={item.id} {...item} />
+              item.isHoliday ? (
+                <HolidayCard key={item.id} reason={item.cancellationReason} />
+              ) : (
+                <ClassItem key={item.id} {...item} />
+              )
             ))
           ) : (
             <View style={styles.noClassesContainer}>

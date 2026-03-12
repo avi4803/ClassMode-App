@@ -30,6 +30,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { AuthContext } from '../../src/context/AuthContext';
 import attendanceService from '../../src/services/attendanceService';
 import DateRangeModal from '../../src/components/common/AttendanceScreen/DateRangeModal';
+import HolidayCard from '../../src/components/common/HolidayCard';
 import CustomAlert from '../../src/components/common/CustomAlert';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -93,7 +94,10 @@ const DetailStat = ({ label, value, color, colors, containerStyle }) => (
   </View>
 );
 
-const HistoryItem = ({ id, date, time, status, colors, onToggle }) => {
+const HistoryItem = ({ id, date, time, status, colors, onToggle, isHoliday, cancellationReason }) => {
+  if (isHoliday) {
+    return <HolidayCard reason={cancellationReason} />;
+  }
   const isPresent = status.toLowerCase() === 'present';
   const isAbsent = status.toLowerCase() === 'absent';
   
@@ -239,6 +243,8 @@ export default function SubjectAttendanceDetail() {
             id: sessionId,
             date: displayDate,
             time: displayTime,
+            isHoliday: r.session?.isHoliday || r.isHoliday,
+            cancellationReason: r.session?.cancellationReason || r.cancellationReason || initialSubject,
             status: r.status ? (r.status.charAt(0).toUpperCase() + r.status.slice(1)) : "Unknown"
           };
         });
@@ -251,6 +257,8 @@ export default function SubjectAttendanceDetail() {
               id: clsId,
               date: 'Today',
               time: `${cls.startTime} - ${cls.endTime}`,
+              isHoliday: cls.isHoliday,
+              cancellationReason: cls.cancellationReason || cls.title || initialSubject,
               status: cls.attendanceStatus ? (cls.attendanceStatus.charAt(0).toUpperCase() + cls.attendanceStatus.slice(1)) : "Not Marked"
             });
           }
