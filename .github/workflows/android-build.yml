@@ -1,9 +1,9 @@
-name: Android Build
+name: Android Production Build
 on:
   push:
     branches:
       - main
-  workflow_dispatch: # Allows manual trigger
+  workflow_dispatch:
 
 jobs:
   build:
@@ -36,15 +36,38 @@ jobs:
       - name: 🏗 Prebuild Android
         run: npx expo prebuild --platform android
 
-      - name: 🚀 Build Android APK (Debug)
+      - name: 🔑 Decode Keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.keystore
+
+      - name: 🚀 Build Release AAB
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew bundleRelease \
+            -Pandroid.injected.signing.store.file=release.keystore \
+            -Pandroid.injected.signing.store.password=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+            -Pandroid.injected.signing.key.alias=${{ secrets.ANDROID_KEY_ALIAS }} \
+            -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }} \
+            --no-daemon
 
-      - name: 📤 Upload APK
+      - name: ⚡ Generate Fast Direct Download Link
+        run: |
+          aab_path="android/app/build/outputs/bundle/release/app-release.aab"
+          # Upload to transfer.sh and print the link
+          URL=$(curl --upload-file $aab_path https://transfer.sh/classmode-release.aab)
+          echo "DOWNLOAD_URL=$URL" >> $GITHUB_ENV
+          
+      - name: 📢 Print Fast Link
+        run: |
+          echo "----------------------------------------------------------------"
+          echo "PRODUCTION AAB DOWNLOAD LINK (Fast):"
+          echo "${{ env.DOWNLOAD_URL }}"
+          echo "----------------------------------------------------------------"
+
+      - name: 📤 Upload AAB (Backup)
         uses: actions/upload-artifact@v4
         with:
-          name: classmode-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: classmode-production-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 7
