@@ -12,6 +12,8 @@ import {
   Platform,
   DeviceEventEmitter,
   Animated,
+  Pressable,
+  Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -46,9 +48,10 @@ export default function TimetableScreen() {
 
   const toggleFab = () => {
     const toValue = isFabOpen ? 0 : 1;
-    Animated.spring(fabAnimation, {
+    Animated.timing(fabAnimation, {
       toValue,
-      friction: 5,
+      duration: 300,
+      easing: Easing.bezier(0.33, 1, 0.68, 1), // easeOutCubic/Quart variant
       useNativeDriver: true,
     }).start();
     setIsFabOpen(!isFabOpen);
@@ -67,6 +70,16 @@ export default function TimetableScreen() {
   const fabOption2Y = fabAnimation.interpolate({
     inputRange: [0, 1],
     outputRange: [0, -135],
+  });
+
+  const fabOpacity = fabAnimation.interpolate({
+    inputRange: [0, 0.3, 1],
+    outputRange: [0, 1, 1],
+  });
+
+  const fabScale = fabAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.85, 1],
   });
 
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -234,149 +247,149 @@ export default function TimetableScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.timetableBg }}>
-      <SafeAreaView
-        edges={["top"]}
-        style={[styles.header, { backgroundColor: colors.timetableBg }]}
+      <Pressable 
+        style={{ flex: 1 }}
+        onPress={() => isFabOpen && toggleFab()}
+        disabled={!isFabOpen}
       >
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-              My Timetable
-            </Text>
-            <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
-              Weekly Schedule
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.todayBtn, { borderColor: colors.primary }]}
-            onPress={() => router.push({ pathname: "ScheduleDetailScreen", params: { selectedDay } })}
-          >
-            <Text style={[styles.todayText, { color: colors.primary }]}>
-              View
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Day Selector - Horizontal Scroll */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.dayScroll}
+        <View 
+          style={{ flex: 1 }}
+          pointerEvents={isFabOpen ? 'none' : 'auto'}
         >
-          {days.map((day) => (
-            <TouchableOpacity
-              key={day}
-              onPress={() => setSelectedDay(day)}
-              style={[
-                styles.dayBtn,
-                {
-                  backgroundColor:
-                    selectedDay === day ? colors.primary : colors.cardSlate,
-                },
-                selectedDay === day && styles.activeShadow,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.dayText,
-                  { color: selectedDay === day ? "#fff" : colors.textPrimary },
-                ]}
+          <SafeAreaView
+            edges={["top"]}
+            style={[styles.header, { backgroundColor: colors.timetableBg }]}
+          >
+            <View style={styles.headerTop}>
+              <View>
+                <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
+                  My Timetable
+                </Text>
+                <Text style={[styles.headerSub, { color: colors.textSecondary }]}>
+                  Weekly Schedule
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.todayBtn, { borderColor: colors.primary }]}
+                onPress={() => router.push({ pathname: "ScheduleDetailScreen", params: { selectedDay } })}
               >
-                {day}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </SafeAreaView>
+                <Text style={[styles.todayText, { color: colors.primary }]}>
+                  View
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-      <ScrollView 
-        contentContainerStyle={styles.mainContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        {loading ? (
-           <ActivityIndicator size="large" color={colors.primary} style={{marginTop: 50}} />
-        ) : (
-          currentClasses.length > 0 ? (
-            currentClasses.map((item) =>
-              item.isFree ? (
-                <View key={item.id} style={styles.freeSlot}>
+            {/* Day Selector - Horizontal Scroll */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.dayScroll}
+            >
+              {days.map((day) => (
+                <TouchableOpacity
+                  key={day}
+                  onPress={() => setSelectedDay(day)}
+                  style={[
+                    styles.dayBtn,
+                    {
+                      backgroundColor:
+                        selectedDay === day ? colors.primary : colors.cardSlate,
+                    },
+                    selectedDay === day && styles.activeShadow,
+                  ]}
+                >
                   <Text
-                    style={[styles.freeText, { color: colors.textSecondary }]}
+                    style={[
+                      styles.dayText,
+                      { color: selectedDay === day ? "#fff" : colors.textPrimary },
+                    ]}
                   >
-                    Free Slot ({item.time})
+                    {day}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </SafeAreaView>
+
+          <ScrollView 
+            contentContainerStyle={styles.mainContent}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          >
+            {loading ? (
+               <ActivityIndicator size="large" color={colors.primary} style={{marginTop: 50}} />
+            ) : (
+              currentClasses.length > 0 ? (
+                currentClasses.map((item) =>
+                  item.isFree ? (
+                    <View key={item.id} style={styles.freeSlot}>
+                      <Text
+                        style={[styles.freeText, { color: colors.textSecondary }]}
+                      >
+                        Free Slot ({item.time})
+                      </Text>
+                    </View>
+                  ) : item.isHoliday ? (
+                    <HolidayCard key={item.id} reason={item.cancellationReason} />
+                  ) : (
+                    <TouchableOpacity
+                      key={item.id}
+                      onPress={() => {
+                        const isAdmin = userRole.some(r => ['admin', 'local-admin'].includes(r));
+                        if (!isAdmin) {
+                          setToast({ visible: true, message: "Class edit only allowed for admin", timestamp: Date.now() });
+                          return;
+                        }
+
+                        const status = (item.status || "").toLowerCase();
+                        if (status === "done" || status === "completed") {
+                          setToast({ visible: true, message: "This class has passed", timestamp: Date.now() });
+                        } else if (status === "cancelled") {
+                          setToast({ visible: true, message: "This class is cancelled", timestamp: Date.now() });
+                        } else {
+                          router.push({
+                            pathname: "EditClassScreen",
+                            params: { classData: JSON.stringify(item) }
+                          });
+                        }
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <TimetableCard {...item} />
+                    </TouchableOpacity>
+                  )
+                )
+              ) : (
+                <View style={styles.emptyState}>
+                  <MaterialIcons name="event-note" size={64} color={colors.border} />
+                  <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+                    {scheduleNotFound ? "No schedule added" : "No classes scheduled"}
                   </Text>
                 </View>
-              ) : item.isHoliday ? (
-                <HolidayCard key={item.id} reason={item.cancellationReason} />
-              ) : (
-                <TouchableOpacity
-                  key={item.id}
-                  onPress={() => {
-                    const isAdmin = userRole.some(r => ['admin', 'local-admin'].includes(r));
-                    if (!isAdmin) {
-                      setToast({ visible: true, message: "Class edit only allowed for admin", timestamp: Date.now() });
-                      return;
-                    }
-
-                    const status = (item.status || "").toLowerCase();
-                    if (status === "done" || status === "completed") {
-                      setToast({ visible: true, message: "This class has passed", timestamp: Date.now() });
-                    } else if (status === "cancelled") {
-                      setToast({ visible: true, message: "This class is cancelled", timestamp: Date.now() });
-                    } else {
-                      router.push({
-                        pathname: "EditClassScreen",
-                        params: { classData: JSON.stringify(item) }
-                      });
-                    }
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <TimetableCard {...item} />
-                </TouchableOpacity>
               )
-            )
-          ) : (
-            <View style={styles.emptyState}>
-              <MaterialIcons name="event-note" size={64} color={colors.border} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                {scheduleNotFound ? "No schedule added" : "No classes scheduled"}
-              </Text>
-            </View>
-          )
-        )}
-      </ScrollView>
+            )}
+          </ScrollView>
+        </View>
 
-      {/* Backdrop overlay to prevent clicking background elements when FAB is open */}
-      {isFabOpen && (
-        <Animated.View 
-          style={[
-            styles.backdrop,
-            {
-              opacity: fabAnimation.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 1],
-              }),
-            },
-          ]}
-        >
-          <TouchableOpacity 
-            activeOpacity={1}
-            onPress={toggleFab}
-            style={{ flex: 1 }}
-          />
-        </Animated.View>
-      )}
-
-      {/* Floating Action Button / Menu */}
-      {userRole.some(r => ['admin', 'local-admin'].includes(r)) && (
-        <View style={styles.fabContainer}>
-          
-          {/* Holiday Option */}
-          <Animated.View style={[styles.fabOptionItem, { transform: [{ translateY: fabOption2Y }], opacity: fabAnimation }]}>
+        {/* Floating Action Button / Menu */}
+        {userRole.some(r => ['admin', 'local-admin'].includes(r)) && (
+          <View style={styles.fabContainer}>
+            
+            {/* Holiday Option */}
+            <Animated.View 
+              style={[
+                styles.fabOptionItem, 
+                { 
+                  transform: [
+                    { translateY: fabOption2Y },
+                    { scale: fabScale }
+                  ], 
+                  opacity: fabOpacity,
+                }
+              ]}
+            >
              <TouchableOpacity 
-               style={styles.fabOptionRow}
-               activeOpacity={0.8}
+               style={styles.fabOptionRowTouchable}
+               activeOpacity={0.7}
                onPress={() => { 
                  toggleFab(); 
                  router.push({ pathname: "HolidayScreen" }); 
@@ -384,16 +397,27 @@ export default function TimetableScreen() {
              >
                <Text style={styles.fabOptionText}>Holiday</Text>
                <View style={[styles.fabOptionBtn, { backgroundColor: '#10b981' }]}>
-                 <MaterialIcons name="beach-access" size={22} color="#fff" />
+                 <MaterialIcons name="beach-access" size={28} color="#fff" />
                </View>
              </TouchableOpacity>
           </Animated.View>
  
           {/* Class Option */}
-          <Animated.View style={[styles.fabOptionItem, { transform: [{ translateY: fabOption1Y }], opacity: fabAnimation }]}>
+            <Animated.View 
+              style={[
+                styles.fabOptionItem, 
+                { 
+                  transform: [
+                    { translateY: fabOption1Y },
+                    { scale: fabScale }
+                  ], 
+                  opacity: fabOpacity,
+                }
+              ]}
+            >
              <TouchableOpacity 
-               style={styles.fabOptionRow}
-               activeOpacity={0.8}
+               style={styles.fabOptionRowTouchable}
+               activeOpacity={0.7}
                onPress={() => { 
                  toggleFab(); 
                  router.push({ pathname: "EditClassScreen", params: { initialDay: selectedDay } }); 
@@ -401,23 +425,24 @@ export default function TimetableScreen() {
              >
                <Text style={styles.fabOptionText}>Class</Text>
                <View style={[styles.fabOptionBtn, { backgroundColor: colors.accentBlue || '#3b82f6' }]}>
-                 <MaterialIcons name="class" size={22} color="#fff" />
+                 <MaterialIcons name="class" size={28} color="#fff" />
                </View>
              </TouchableOpacity>
           </Animated.View>
 
-          {/* Main FAB Toggle */}
-          <TouchableOpacity
-            style={[styles.fab, { backgroundColor: colors.primary }]}
-            onPress={toggleFab}
-            activeOpacity={0.8}
-          >
-            <Animated.View style={{ transform: [{ rotate: fabRotation }] }}>
-              <MaterialIcons name="add" size={32} color="#fff" />
-            </Animated.View>
-          </TouchableOpacity>
-        </View>
-      )}
+            {/* Main FAB Toggle */}
+            <TouchableOpacity
+              style={[styles.fab, { backgroundColor: colors.primary }]}
+              onPress={toggleFab}
+              activeOpacity={0.8}
+            >
+              <Animated.View style={{ transform: [{ rotate: fabRotation }] }}>
+                <MaterialIcons name="add" size={32} color="#fff" />
+              </Animated.View>
+            </TouchableOpacity>
+          </View>
+        )}
+      </Pressable>
 
       <AppToast 
         visible={toast.visible} 
@@ -459,15 +484,6 @@ const styles = StyleSheet.create({
   mainContent: { padding: 16, paddingBottom: 100 },
   freeSlot: { paddingVertical: 12, alignItems: "center" },
   freeText: { fontSize: 14, fontFamily: 'Urbanist_500Medium', opacity: 0.7 },
-  backdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    zIndex: 90,
-  },
   fabContainer: {
     position: "absolute",
     bottom: 30,
@@ -478,30 +494,36 @@ const styles = StyleSheet.create({
   },
   fabOptionItem: {
     position: 'absolute',
-    right: 6, // Centers 48px button inside 60px root button
-    bottom: 6,
+    right: 4, // Center of 60px FAB
+    bottom: 4,
     zIndex: 1,
+    width: 56, 
+    height: 56,
   },
-  fabOptionRow: {
+  fabOptionRowTouchable: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
+    width: 200,
+    height: 56,
+    position: 'absolute',
+    right: 0,
   },
   fabOptionText: {
     color: '#fff',
     backgroundColor: 'rgba(0,0,0,0.6)',
     paddingVertical: 6,
     borderRadius: 8,
-    marginRight: 12,
+    marginRight: 16,
     fontFamily: 'Urbanist_700Bold',
     fontSize: 13,
     width: 80,
     textAlign: 'center',
   },
   fabOptionBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
