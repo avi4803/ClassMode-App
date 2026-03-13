@@ -51,21 +51,7 @@ jobs:
             -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }} \
             --no-daemon
 
-      - name: ⚡ Generate Fast Direct Download Link
-        run: |
-          aab_path="android/app/build/outputs/bundle/release/app-release.aab"
-          # Upload to transfer.sh and print the link
-          URL=$(curl --upload-file $aab_path https://transfer.sh/classmode-release.aab)
-          echo "DOWNLOAD_URL=$URL" >> $GITHUB_ENV
-          
-      - name: 📢 Print Fast Link
-        run: |
-          echo "----------------------------------------------------------------"
-          echo "PRODUCTION AAB DOWNLOAD LINK (Fast):"
-          echo "${{ env.DOWNLOAD_URL }}"
-          echo "----------------------------------------------------------------"
-
-      - name: 📤 Upload AAB (Backup)
+      - name: 📤 Upload Production AAB
         uses: actions/upload-artifact@v4
         with:
           name: classmode-production-aab
