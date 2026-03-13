@@ -347,37 +347,62 @@ export default function TimetableScreen() {
         )}
       </ScrollView>
 
+      {/* Backdrop overlay to prevent clicking background elements when FAB is open */}
+      {isFabOpen && (
+        <Animated.View 
+          style={[
+            styles.backdrop,
+            {
+              opacity: fabAnimation.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 1],
+              }),
+            },
+          ]}
+        >
+          <TouchableOpacity 
+            activeOpacity={1}
+            onPress={toggleFab}
+            style={{ flex: 1 }}
+          />
+        </Animated.View>
+      )}
+
       {/* Floating Action Button / Menu */}
       {userRole.some(r => ['admin', 'local-admin'].includes(r)) && (
         <View style={styles.fabContainer}>
           
           {/* Holiday Option */}
           <Animated.View style={[styles.fabOptionItem, { transform: [{ translateY: fabOption2Y }], opacity: fabAnimation }]}>
-             <Text style={styles.fabOptionText}>Holiday</Text>
              <TouchableOpacity 
-               style={[styles.fabOptionBtn, { backgroundColor: '#10b981' }]} // Green marker for holiday
+               style={styles.fabOptionRow}
                activeOpacity={0.8}
                onPress={() => { 
                  toggleFab(); 
                  router.push({ pathname: "HolidayScreen" }); 
                }}
              >
-               <MaterialIcons name="beach-access" size={22} color="#fff" />
+               <Text style={styles.fabOptionText}>Holiday</Text>
+               <View style={[styles.fabOptionBtn, { backgroundColor: '#10b981' }]}>
+                 <MaterialIcons name="beach-access" size={22} color="#fff" />
+               </View>
              </TouchableOpacity>
           </Animated.View>
-
+ 
           {/* Class Option */}
           <Animated.View style={[styles.fabOptionItem, { transform: [{ translateY: fabOption1Y }], opacity: fabAnimation }]}>
-             <Text style={styles.fabOptionText}>Class</Text>
              <TouchableOpacity 
-               style={[styles.fabOptionBtn, { backgroundColor: colors.accentBlue || '#3b82f6' }]}
+               style={styles.fabOptionRow}
                activeOpacity={0.8}
                onPress={() => { 
                  toggleFab(); 
                  router.push({ pathname: "EditClassScreen", params: { initialDay: selectedDay } }); 
                }}
              >
-               <MaterialIcons name="class" size={22} color="#fff" />
+               <Text style={styles.fabOptionText}>Class</Text>
+               <View style={[styles.fabOptionBtn, { backgroundColor: colors.accentBlue || '#3b82f6' }]}>
+                 <MaterialIcons name="class" size={22} color="#fff" />
+               </View>
              </TouchableOpacity>
           </Animated.View>
 
@@ -434,6 +459,15 @@ const styles = StyleSheet.create({
   mainContent: { padding: 16, paddingBottom: 100 },
   freeSlot: { paddingVertical: 12, alignItems: "center" },
   freeText: { fontSize: 14, fontFamily: 'Urbanist_500Medium', opacity: 0.7 },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    zIndex: 90,
+  },
   fabContainer: {
     position: "absolute",
     bottom: 30,
@@ -444,11 +478,14 @@ const styles = StyleSheet.create({
   },
   fabOptionItem: {
     position: 'absolute',
-    flexDirection: 'row',
-    alignItems: 'center',
     right: 6, // Centers 48px button inside 60px root button
     bottom: 6,
     zIndex: 1,
+  },
+  fabOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
   },
   fabOptionText: {
     color: '#fff',

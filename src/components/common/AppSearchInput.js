@@ -7,12 +7,24 @@ const AppSearchInput = ({ label, data, value, onSelect, onAddPress, placeholder 
   const { colors } = useTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
   
-  const [query, setQuery] = useState(value || '');
+  const getInitialQuery = () => {
+    if (!value) return '';
+    const item = data.find(i => (typeof i === 'object' ? i.value : i) === value);
+    return typeof item === 'object' ? item.label : (item || value);
+  };
+
+  const [query, setQuery] = useState(getInitialQuery());
   const [showResults, setShowResults] = useState(false);
 
   useEffect(() => {
-    if (value) setQuery(value);
-  }, [value]);
+    if (value) {
+      const item = data.find(i => (typeof i === 'object' ? i.value : i) === value);
+      const label = typeof item === 'object' ? item.label : (item || value);
+      if (label !== query) setQuery(label);
+    } else {
+      setQuery('');
+    }
+  }, [value, data]);
 
   // Handle data that might be an array of strings or objects { label, value, isVerified }
   const formattedData = useMemo(() => {

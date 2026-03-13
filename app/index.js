@@ -6,12 +6,14 @@ import {
   TouchableOpacity,
   Dimensions,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "../src/hooks/useTheme";
 import { router } from "expo-router";
 import { AuthContext } from "../src/context/AuthContext";
+
 
 const { width } = Dimensions.get("window");
 
@@ -49,12 +51,12 @@ export default function LaunchScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         
-        {/* --- Top Logo Section --- */}
         <View style={styles.logoContainer}>
-          <View style={[styles.logoGradient, { backgroundColor: colors.primary }]}>
-            <MaterialIcons name="school" size={50} color="#fff" />
-          </View>
-          <Text style={[styles.brandName, { color: colors.textPrimary }]}>CampusSync</Text>
+          <Image
+            source={require('../assets/logo.png')}
+            style={styles.localImage}
+          />
+          <Text style={[styles.brandName, { color: colors.textPrimary }]}>Classmode</Text>
           <Text style={[styles.tagline, { color: colors.textSecondary }]}>
             Your college, connected.
           </Text>
@@ -111,14 +113,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   logoContainer: {
+  
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+
   },
   logoGradient: {
-    width: 96,
-    height: 96,
-    borderRadius: 24,
+    width: 0,
+    height: 60,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 24,
@@ -133,14 +137,15 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: "700",
     letterSpacing: -0.5,
-    marginBottom: 8,
+    marginBottom: 5,
   },
   tagline: {
+   
     fontSize: 18,
     fontWeight: "500",
   },
   featuresList: {
-    gap: 16,
+    gap: 12,
     marginBottom: 32,
     width: "100%",
     maxWidth: 400,
@@ -152,12 +157,14 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 20,
     borderWidth: 1,
-    // Shadow for light mode
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+  
+   
+  },
+  localImage: {
+    width:75,
+    height: 75,
+    borderRadius: 0,
+    resizeMode: 'contain',
   },
   iconBox: {
     width: 48,

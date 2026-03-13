@@ -5,9 +5,9 @@
     "scheme": "classmode",
     "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/logo.png",
+    "icon": "./assets/app_logo.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/logo.png",
       "resizeMode": "contain",
@@ -21,14 +21,14 @@
       }
     },
     "android": {
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo.png",
+        "foregroundImage": "./assets/app_logo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.avi_0408.classmode",
-      "usesCleartextTraffic": true,
+      "usesCleartextTraffic": false,
       "googleServicesFile": "./google-services.json"
     },
     "plugins": [
@@ -43,7 +43,7 @@
             "useFrameworks": "static"
           },
           "android": {
-            "ndkVersion": "26.1.10909125",
+            "usesCleartextTraffic": false,
             "enableProguardInReleaseBuilds": true
           }
         }

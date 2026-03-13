@@ -340,7 +340,7 @@ export default function DashboardScreen() {
                badge="ADMIN ONLY"
                onPress={handleScanPress} 
             />
-            <QuickAction icon="pin-drop" label="Mark" onPress={() => console.log('Mark')} />
+            <QuickAction icon="pin-drop" label="Mark" onPress={() => router.push('/(attendance)/AttendanceHistoryScreen')} />
           </View>
 
           <View style={{ gap: 10 }}>

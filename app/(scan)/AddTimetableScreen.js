@@ -227,21 +227,41 @@ export default function AddTimetableScreen() {
           }} 
         />
         <MenuButton icon="image" label="Upload Image" onPress={() => handlePickFile('image')} />
-        <MenuButton icon="picture-as-pdf" label="Upload PDF" onPress={() => handlePickFile('pdf')} />
+        <MenuButton 
+          icon="picture-as-pdf" 
+          label="Upload PDF" 
+          onPress={() => handlePickFile('pdf')} 
+          disabled={true} 
+          badge="COMING SOON" 
+        />
       </View>
     </ScrollView>
   );
 }
 
-const MenuButton = ({ icon, label, primary, onPress }) => {
+const MenuButton = ({ icon, label, primary, onPress, disabled, badge }) => {
   const colors = useTheme();
   return (
     <TouchableOpacity 
       onPress={onPress}
-      style={[styles.menuBtn, { backgroundColor: primary ? colors.primary : colors.card, borderColor: colors.border }]}
+      disabled={disabled}
+      activeOpacity={disabled ? 1 : 0.7}
+      style={[
+        styles.menuBtn, 
+        { 
+          backgroundColor: primary ? colors.primary : colors.card, 
+          borderColor: colors.border,
+          opacity: disabled ? 0.6 : 1
+        }
+      ]}
     >
       <MaterialIcons name={icon} size={24} color={primary ? '#fff' : colors.textPrimary} />
       <Text style={[styles.menuBtnText, { color: primary ? '#fff' : colors.textPrimary }]}>{label}</Text>
+      {badge && (
+        <View style={styles.badgeContainer}>
+          <Text style={styles.badgeText}>{badge}</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 };
@@ -262,5 +282,20 @@ const styles = StyleSheet.create({
   btnStack: { gap: 16 },
   menuBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 18, borderRadius: 12, borderWidth: 1, gap: 12 },
   menuBtnText: { fontSize: 16, fontWeight: '600' },
-  pdfPreview: { flex: 1, justifyContent: 'center', alignItems: 'center' }
+  pdfPreview: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  badgeContainer: {
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    position: 'absolute',
+    top: 6,
+    right: 6,
+  },
+  badgeText: {
+    fontSize: 7,
+    fontWeight: '900',
+    color: '#64748b',
+    letterSpacing: 0.2
+  }
 });

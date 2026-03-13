@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../../hooks/useTheme';
 
@@ -7,7 +7,14 @@ export const InfoRow = ({ icon, label, value, isVerified }) => {
   const colors = useTheme();
   return (
     <View style={[styles.row, { borderBottomColor: colors.border }]}>
-      <MaterialIcons name={icon} size={22} color={colors.textSecondary} />
+      {icon === 'school' && !colors.isDark ? (
+        <Image 
+          source={require('../../../../assets/logo.png')} 
+          style={{ width: 22, height: 22, resizeMode: 'contain' }} 
+        />
+      ) : (
+        <MaterialIcons name={icon} size={22} color={colors.textSecondary} />
+      )}
       <View style={styles.content}>
         <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>
         <View style={styles.valueRow}>

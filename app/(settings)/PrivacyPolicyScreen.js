@@ -6,6 +6,13 @@ import { useTheme } from "../../src/hooks/useTheme";
 export default function PrivacyPolicyScreen() {
   const colors = useTheme();
 
+  const Section = ({ title, children }) => (
+    <View style={styles.section}>
+      <Text style={[styles.sectionTitle, { color: colors.primary }]}>{title}</Text>
+      <Text style={[styles.paragraph, { color: colors.textPrimary }]}>{children}</Text>
+    </View>
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
@@ -17,61 +24,36 @@ export default function PrivacyPolicyScreen() {
         <ScrollView contentContainerStyle={styles.container}>
           <View style={[styles.card, { backgroundColor: colors.card }]}>
             <Text style={[styles.date, { color: colors.textSecondary }]}>
-              Effective Date: {new Date().toLocaleDateString()}
+              Last Updated: March 13, 2026
             </Text>
 
-            <Text style={[styles.paragraph, { color: colors.textPrimary }]}>
-              Your privacy is important to us. This Privacy Policy explains how
-              we collect, use, disclose, and safeguard your information when you
-              use the Classmode mobile application. Please read this privacy
-              policy carefully.
-            </Text>
+            <Section title="1. Introduction">
+              Classmode values your privacy. This policy explains how we collect, use, and protect your data when using the app for schedule management and attendance tracking.
+            </Section>
 
-            <Text style={[styles.sectionTitle, { color: colors.primary }]}>
-              1. Information We Collect
-            </Text>
-            <Text style={[styles.paragraph, { color: colors.textPrimary }]}>
-              Currently, the Classmode application does not collect any personal, 
-              educational, or device information from its users.
-            </Text>
+            <Section title="2. Information We Collect">
+              We collect data to provide a personalized experience:{"\n"}
+              • Account: Name and college email.{"\n"}
+              • Education: College name, batch, and section.{"\n"}
+              • Metadata: Scanned timetable images (processed for OCR).{"\n"}
+              • Device: Push tokens for class reminders.
+            </Section>
 
-            <Text style={[styles.sectionTitle, { color: colors.primary }]}>
-              2. Use of Your Information
-            </Text>
-            <Text style={[styles.paragraph, { color: colors.textPrimary }]}>
-              Since we do not collect any information, we do not use your information 
-              for any purpose at this time.
-            </Text>
+            <Section title="3. How We Use Data">
+              Your data is used to synchronize your timetable, calculate attendance percentages, and send notification reminders before your classes start.
+            </Section>
 
-            <Text style={[styles.sectionTitle, { color: colors.primary }]}>
-              3. Disclosure of Your Information
-            </Text>
-            <Text style={[styles.paragraph, { color: colors.textPrimary }]}>
-              We do not share, sell, rent, or trade your information with any third 
-              parties as we do not collect any information.
-            </Text>
+            <Section title="4. Data Security">
+              We do not sell your data. We use industry-standard encryption for passwords and secure cloud hosting for your schedules.
+            </Section>
 
-            <Text style={[styles.sectionTitle, { color: colors.primary }]}>
-              4. Security of Your Information
-            </Text>
-            <Text style={[styles.paragraph, { color: colors.textPrimary }]}>
-              While we do not currently collect data, we maintain administrative, 
-              technical, and physical security measures to help protect any future 
-              interactions with the Application.
-            </Text>
+            <Section title="5. Your Rights">
+              You can modify or delete your account and all associated data at any time via the Profile settings.
+            </Section>
 
-            <Text style={[styles.sectionTitle, { color: colors.primary }]}>
-              5. Contact Us
-            </Text>
-            <Text style={[styles.paragraph, { color: colors.textPrimary }]}>
-              If you have questions or comments about this Privacy Policy, please
-              contact us at:
-            </Text>
-            <Text style={[styles.contactInfo, { color: colors.textPrimary }]}>
-              Avinash Nishad{"\n"}
-              Classmode{"\n"}
-              avinashn157@gmail.com
-            </Text>
+            <Section title="6. Contact Us">
+              Email: classmode.service@gmail.com
+            </Section>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -95,8 +77,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   card: {
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 20,
+    padding: 24,
     elevation: 2,
     shadowColor: "#000",
     shadowOpacity: 0.05,
@@ -104,24 +86,20 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 14,
-    fontFamily: "Urbanist_500Medium",
-    marginBottom: 16,
+    fontFamily: "Urbanist_600SemiBold",
+    marginBottom: 20,
+  },
+  section: {
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
     fontFamily: "Urbanist_700Bold",
-    marginTop: 20,
     marginBottom: 8,
   },
   paragraph: {
     fontSize: 15,
     fontFamily: "Urbanist_500Medium",
     lineHeight: 24,
-  },
-  contactInfo: {
-    fontSize: 15,
-    fontFamily: "Urbanist_600SemiBold",
-    lineHeight: 24,
-    marginTop: 8,
   },
 });

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable, Keyboard, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Keyboard, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from 'expo-router';
@@ -64,8 +64,11 @@ const ForgotPasswordScreen = () => {
                 
                 {/* Logo Section */}
                 <View style={styles.logoWrapper}>
-                  <View style={[styles.logoBox, { backgroundColor: colors.iconBg || (colors.isDark ? "rgba(49, 46, 129, 0.4)" : "#e0e7ff") }]}>
-                    <MaterialIcons name="school" size={48} color={colors.primary} />
+                  <View style={styles.logoBox}>
+                    <Image 
+                      source={require('../../assets/logo.png')} 
+                      style={styles.logoImage} 
+                    />
                   </View>
                   <Text style={[styles.title, { color: colors.textPrimary }]}>Forgot Password?</Text>
                   <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
@@ -132,10 +135,14 @@ const getStyles = (colors) => StyleSheet.create({
   logoBox: {
     width: 96,
     height: 96,
-    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 32,
+  },
+  logoImage: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
   },
   title: {
     fontSize: 28,

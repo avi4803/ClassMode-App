@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { View, Text, ScrollView, StyleSheet, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "../../src/hooks/useTheme";
@@ -99,7 +99,9 @@ export default function NotificationSettingsScreen() {
     <View style={[styles.row, { borderBottomColor: colors.border }]}>
       <View style={styles.rowLeft}>
         <View style={[styles.iconBox, { backgroundColor: color.bg }]}>
-          <MaterialIcons name={icon} size={22} color={color.text} />
+          
+            <MaterialIcons name={icon} size={22} color={color.text} />
+          
         </View>
         
         <View style={styles.textContainer}>

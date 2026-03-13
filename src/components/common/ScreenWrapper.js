@@ -6,16 +6,16 @@ import {
   ScrollView,
   View
 } from 'react-native';
-import { useTheme } from '../../theme/ThemeContext';
+import { useTheme } from '../../hooks/useTheme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ScreenWrapper = ({ children }) => {
-  const { colors } = useTheme();
+  const colors = useTheme();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar 
-        barStyle={colors.statusbar} 
+        barStyle={colors.isDark ? 'light-content' : 'dark-content'} 
         backgroundColor={colors.background} 
       />
       <KeyboardAvoidingView

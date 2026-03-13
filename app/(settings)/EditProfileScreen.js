@@ -8,6 +8,7 @@ import authService from "../../src/services/authService";
 // Components
 import { CustomDropdown } from "../../src/components/common/EditProfileSectionScreen/CustomDropdown";
 import { LockedInput } from "../../src/components/common/EditProfileSectionScreen/LockedInput";
+import CustomAlert from "../../src/components/common/CustomAlert";
 
 // Simple in-memory cache
 let cachedData = null;
@@ -31,6 +32,7 @@ export default function EditProfileScreen() {
   // Store full objects to specific IDs for saving later (optional for this step but good practice)
   const [rawBatches, setRawBatches] = useState([]);
   const [rawSections, setRawSections] = useState([]);
+  const [alertVisible, setAlertVisible] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -110,11 +112,7 @@ export default function EditProfileScreen() {
 
 
   const handleSave = () => {
-    // Backend Logic: POST profileData
-    // Note: To actually update, we'd need to map the selected string back to an ID using rawBatches/rawSections
-    // For now, we just simulate the save as per request to "use real data" for display.
-    Alert.alert("Success", "Profile updated locally (Backend Sync Pending)!");
-    console.log("Saving to backend:", profileData);
+    setAlertVisible(true);
   };
 
   if (loading) {
@@ -163,6 +161,13 @@ export default function EditProfileScreen() {
             <Text style={styles.saveBtnText}>Save Changes</Text>
           </TouchableOpacity>
         </View>
+        <CustomAlert 
+          visible={alertVisible}
+          onClose={() => setAlertVisible(false)}
+          title="Coming Soon"
+          message="The ability to edit your profile and section is coming in a future update! Stay tuned."
+          confirmLabel="Got it!"
+        />
       </SafeAreaView>
     </View>
   );

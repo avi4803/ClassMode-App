@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { MaterialIcons } from "@expo/vector-icons";
-import { useTheme } from '../../theme/ThemeContext';
+import { useTheme } from '../../hooks/useTheme';
 
 const AppInput = ({
   label,
@@ -12,7 +12,7 @@ const AppInput = ({
   secureTextEntry,
   keyboardType = 'default',
 }) => {
-  const { colors } = useTheme();
+  const colors = useTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
   
   const [isFocused, setIsFocused] = useState(false);
@@ -31,7 +31,7 @@ const AppInput = ({
         <MaterialIcons 
           name={iconName} 
           size={20} 
-          color={isFocused ? colors.primary : colors.textMuted} 
+          color={isFocused ? colors.primary : colors.textSecondary} 
           style={styles.iconLeft} 
         />
 
@@ -40,7 +40,7 @@ const AppInput = ({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={colors.placeholder}
           secureTextEntry={isSecure}
           keyboardType={keyboardType}
           onFocus={() => setIsFocused(true)}
@@ -56,7 +56,7 @@ const AppInput = ({
             <MaterialIcons 
               name={isPasswordVisible ? 'visibility' : 'visibility-off'} 
               size={20} 
-              color={colors.textMuted} 
+              color={colors.textSecondary} 
             />
           </Pressable>
         )}
@@ -72,7 +72,7 @@ const getStyles = (colors) => StyleSheet.create({
   label: {
     fontSize: 14,
     fontFamily: 'Urbanist_700Bold',
-    color: colors.textMain, // Dynamic Color
+    color: colors.textPrimary, // Dynamic Color
     marginBottom: 6,
     marginLeft: 4,
   },
@@ -100,7 +100,7 @@ const getStyles = (colors) => StyleSheet.create({
   input: {
     flex: 1,
     height: '100%',
-    color: colors.textMain, // Dynamic Color
+    color: colors.textPrimary, // Dynamic Color
     fontSize: 14,
     fontFamily: 'Urbanist_600SemiBold',
   },

@@ -355,8 +355,8 @@ return (
               <View style={[styles.verticalLine, { backgroundColor: theme.timelineLine }]} />
 
               <View style={styles.timelineContainer}>
-                {scheduleData.length > 0 ? scheduleData.map((item) => (
-                  <View key={item.id} style={styles.timelineRow}>
+                {scheduleData.length > 0 ? scheduleData.map((item, index) => (
+                  <View key={`${item.id}-${index}`} style={styles.timelineRow}>
                     {/* Time Column */}
                     <View style={styles.timeCol}>
                       <Text style={[styles.timeLabel, { color: theme.textSecondary, fontFamily: theme.fonts.semiBold }]}>

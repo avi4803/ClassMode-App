@@ -12,12 +12,14 @@ import {
   useColorScheme,
   Alert,
   ActivityIndicator,
-  BackHandler
+  BackHandler,
+  Image
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { AuthContext } from "../../src/context/AuthContext";
+import { useTheme } from "../../src/hooks/useTheme";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -74,24 +76,17 @@ export default function LoginScreen() {
     };
 
 
-  // Detect Theme (Light/Dark)
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  // Use Global Theme
+  const colors = useTheme();
 
 
 
-  // Define Theme Colors (Matching Tailwind defaults)
+  // Define Theme Colors (Matching global theme)
   const theme = {
-    bg: isDark ? "#0f172a" : "#f8fafc",
-    textPrimary: isDark ? "#ffffff" : "#0f172a", // Slate-900 vs White
-    textSecondary: isDark ? "#94a3b8" : "#475569", // Slate-400 vs Slate-600
-    border: isDark ? "#334155" : "#cbd5e1", // Slate-700 vs Slate-300
-    inputBg: "transparent",
-    iconBg: isDark ? "rgba(49, 46, 129, 0.4)" : "#e0e7ff", // Indigo-900/40 vs Indigo-100
-    placeholder: "#94a3b8",
-    primary: "#4f46e5",
-    focusBorder: "#4f46e5",
-    focusBg: "rgba(79, 70, 229, 0.05)", // Slight indigo tint on focus
+    ...colors,
+    bg: colors.background,
+    focusBorder: colors.primary,
+    focusBg: colors.primary + '0D', // ~5% opacity indigo
   };
 
   return (
@@ -109,8 +104,11 @@ export default function LoginScreen() {
               
               {/* --- Header --- */}
               <View style={styles.header}>
-                <View style={[styles.iconWrapper, { backgroundColor: theme.iconBg }]}>
-                  <MaterialIcons name="school" size={48} color={theme.primary} />
+                <View style={styles.iconWrapper}>
+                  <Image 
+                    source={require('../../assets/logo.png')} 
+                    style={styles.logoImage} 
+                  />
                 </View>
                 <Text style={[styles.title, { color: theme.textPrimary }]}>
                   Login to your account
@@ -259,12 +257,16 @@ const styles = StyleSheet.create({
     marginBottom: 32, // mb-8
   },
   iconWrapper: {
-    width: 96,  // w-24
-    height: 96, // h-24
-    borderRadius: 24, // rounded-3xl
+    width: 96,
+    height: 96,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 24, // mb-6
+    marginBottom: 24,
+  },
+  logoImage: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
   },
   title: {
     fontSize: 24, // text-2xl

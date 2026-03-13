@@ -1,18 +1,18 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TouchableOpacity, Alert, ActivityIndicator, Image } from 'react-native';
 import { MaterialIcons } from "@expo/vector-icons";
 
 import ScreenWrapper from '../../src/components/common/ScreenWrapper';
 import SignupForm from '../../src/components/forms/SignupForm';
 import AppButton from '../../src/components/common/AppButton';
 import { globalStyles } from '../../src/styles/globalStyles';
-import { useTheme } from '../../src/theme/ThemeContext';
+import { useTheme } from '../../src/hooks/useTheme';
 import { router } from 'expo-router';
 import OverlayBackButton from '../../src/components/common/BackNavigationButton';
 import authService from '../../src/services/authService';
 
 const SignupScreen = () => {
-  const { colors } = useTheme();
+  const colors = useTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   const [formData, setFormData] = useState({
@@ -26,6 +26,10 @@ const SignupScreen = () => {
   const handleSignup = async () => {
     if (!formData.email || !formData.password || !formData.fullName) {
       Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+    if (formData.password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long');
       return;
     }
     if (formData.password !== formData.confirmPassword) {
@@ -62,8 +66,11 @@ const SignupScreen = () => {
       <View style={styles.content}>
         {/* Logo Section */}
         <View style={styles.logoContainer}>
-          <View style={[styles.iconBox, { backgroundColor: colors.bgIndigo || '#e0e7ff' }]}>
-            <MaterialIcons name="school" size={48} color={colors.primary} />
+          <View style={styles.iconBox}>
+            <Image 
+              source={require('../../assets/logo.png')} 
+              style={styles.logoImage} 
+            />
           </View>
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.subtitle}>Join your college community today</Text>
@@ -133,15 +140,19 @@ const getStyles = (colors) => StyleSheet.create({
   iconBox: {
     width: 96,
     height: 96,
-    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
   },
+  logoImage: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
+  },
   title: {
     fontSize: 30,
     fontFamily: 'Urbanist_700Bold',
-    color: colors.textMain, // Switches White/Black
+    color: colors.textPrimary, // Switches White/Black
     textAlign: 'center',
   },
   subtitle: {
@@ -152,7 +163,7 @@ const getStyles = (colors) => StyleSheet.create({
     textAlign: 'center',
   },
   card: {
-    backgroundColor: colors.surface, // Switches White/Slate800
+    backgroundColor: colors.card, // Switches White/Slate800
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,

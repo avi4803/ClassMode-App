@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../../../hooks/useTheme';
 
@@ -13,7 +13,9 @@ export const StatCard = ({ label, value, icon, colorKey }) => {
     <View style={[styles.card, { backgroundColor: bg }]}>
       <View style={styles.header}>
         <Text style={[styles.label, { color: accent }]}>{label}</Text>
-        <MaterialIcons name={icon} size={20} color={accent} />
+        
+          <MaterialIcons name={icon} size={20} color={accent} />
+        
       </View>
       <Text style={[styles.value, { color: colors.textPrimary }]}>{value}</Text>
     </View>

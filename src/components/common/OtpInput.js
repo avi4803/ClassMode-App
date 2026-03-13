@@ -1,9 +1,9 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { View, TextInput, StyleSheet, Platform } from 'react-native';
-import { useTheme } from '../../theme/ThemeContext';
+import { useTheme } from '../../hooks/useTheme';
 
 const OtpInput = ({ length = 6, onOtpChange }) => {
-  const { colors } = useTheme();
+  const colors = useTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
   
   const [otp, setOtp] = useState(new Array(length).fill(''));
@@ -48,7 +48,7 @@ const OtpInput = ({ length = 6, onOtpChange }) => {
           maxLength={1}
           selectTextOnFocus
           cursorColor={colors.primary}
-          selectionColor={colors.primaryLight}
+          selectionColor={colors.primary + '33'}
         />
       ))}
     </View>
@@ -69,7 +69,7 @@ const getStyles = (colors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.inputBg, // slate-100 / slate-800
-    color: colors.textMain,
+    color: colors.textPrimary,
     fontSize: 24, // text-2xl
     fontWeight: '700',
     textAlign: 'center',
@@ -80,7 +80,7 @@ const getStyles = (colors) => StyleSheet.create({
   inputFilled: {
     borderColor: colors.primary,
     borderWidth: 1.5,
-    backgroundColor: colors.surface, // Slight highlight on fill
+    backgroundColor: colors.card, // Slight highlight on fill
   },
 });
 

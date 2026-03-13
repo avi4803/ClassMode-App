@@ -9,17 +9,15 @@ const getBaseUrl = () => {
   const hostUri = Constants.expoConfig?.hostUri;
   
   if (hostUri) {
-    const ip ='3.6.224.83' 
-    // hostUri.split(':')[0];
-    // Assuming your backend is always on port 3000
-    return `http://${ip}:3000/api/v1`;
+    // Using the new secure production domain
+    return `https://api.classmode.app/api/v1`;
   }
   
-  // Fallback IP if not running via Expo dev server (should be your dev machine IP)
-  return 'http://10.0.1.90:3000/api/v1';
+  // Fallback to secure production domain
+  return 'https://api.classmode.app/api/v1';
 };
 
-const BASE_URL = "http://192.168.40.182:3000/api/v1";
+const BASE_URL = "https://api.classmode.app/api/v1";
 // "http://3.6.224.83:3000/api/v1"
 
 const client = axios.create({

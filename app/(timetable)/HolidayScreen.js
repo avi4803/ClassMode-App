@@ -279,7 +279,12 @@ export default function HolidayScreen() {
           ListFooterComponent={
             <View style={[styles.syncCard, { backgroundColor: colors.primary }]}>
               <View style={styles.syncCardContent}>
-                <Text style={styles.syncCardLabel}>STAY ORGANIZED</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <Text style={styles.syncCardLabel}>STAY ORGANIZED</Text>
+                  <View style={styles.comingSoonBadge}>
+                    <Text style={styles.comingSoonText}>COMING SOON</Text>
+                  </View>
+                </View>
                 <Text style={styles.syncCardTitle}>Sync your calendar with academic deadlines</Text>
                 <TouchableOpacity style={styles.syncCardBtn} activeOpacity={0.8}>
                   <Text style={[styles.syncCardBtnText, { color: colors.primary }]}>Sync Now</Text>
@@ -430,7 +435,17 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: 'Urbanist_800ExtraBold',
     letterSpacing: 2,
-    marginBottom: 6,
+  },
+  comingSoonBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  comingSoonText: {
+    color: '#fff',
+    fontSize: 8,
+    fontFamily: 'Urbanist_800ExtraBold',
   },
   syncCardTitle: {
     color: '#fff',

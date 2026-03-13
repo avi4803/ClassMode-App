@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
 import { Pressable, Text, StyleSheet } from 'react-native';
-import { useTheme } from '../../theme/ThemeContext';
+import { useTheme } from '../../hooks/useTheme';
 import { globalStyles } from '../../styles/globalStyles';
 
 const AppButton = ({ title, onPress }) => {
-  const { colors } = useTheme();
+  const colors = useTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   return (
@@ -14,7 +14,7 @@ const AppButton = ({ title, onPress }) => {
         styles.button,
         globalStyles.shadowButton,
         // Apply shadow color dynamically via inline style since globalStyles is static
-        { shadowColor: colors.shadow }, 
+        { shadowColor: colors.primary }, 
         pressed && styles.pressed,
       ]}
     >

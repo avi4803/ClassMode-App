@@ -30,7 +30,7 @@ export const DashboardHeader = ({ userName, section , batch , lastUpdated, onPre
               ) : null}
             </View>
             <Text style={[styles.subText, { color: colors.textSecondary }]}>
-              {batch} • {section} {lastUpdated ? ` • ${lastUpdated.replace('Updated: ', '')}` : ''}
+              {batch} • {section} {lastUpdated ? ` • ${lastUpdated.replace('Updated: ', '')} (last updated)` : ''}
             </Text>
           </View>
 

@@ -46,23 +46,40 @@ export default function AttendanceHistoryScreen() {
       ]);
 
       // Process Today's Records
-      const today = (todayRes.data || []).map(item => {
-        const statusStr = (item.status || "").toLowerCase();
-        let displayStatus = item.attendanceStatus || "Not Marked";
-        
-        if (statusStr === 'cancelled' || item.isCancelled) displayStatus = "Cancelled";
-        else if (statusStr === 'rescheduled' || item.isRescheduled) displayStatus = "Rescheduled";
-        
-        return {
-          id: item._id,
-          isHoliday: item.isHoliday,
-          cancellationReason: item.cancellationReason || item.title || item.subject?.name,
-          subject: item.subject?.name || "Unknown",
+      const rawToday = todayRes.data || [];
+      const hasHolidayToday = rawToday.some(item => item.isHoliday);
+      let today = [];
+
+      if (hasHolidayToday) {
+        const h = rawToday.find(item => item.isHoliday);
+        // Collapse today into ONE holiday card
+        today = [{
+          id: 'holiday-today',
+          isHoliday: true,
+          cancellationReason: h.cancellationReason || h.title || h.subject?.name || "Institute Holiday",
+          subject: "Holiday",
           date: "Today",
-          time: `${item.startTime} - ${item.endTime}`,
-          status: displayStatus
-        };
-      });
+          time: "",
+          status: "Holiday"
+        }];
+      } else {
+        today = rawToday.map(item => {
+          const statusStr = (item.status || "").toLowerCase();
+          let displayStatus = item.attendanceStatus || "Not Marked";
+          
+          if (statusStr === 'cancelled' || item.isCancelled) displayStatus = "Cancelled";
+          else if (statusStr === 'rescheduled' || item.isRescheduled) displayStatus = "Rescheduled";
+          
+          return {
+            id: item._id,
+            isHoliday: false,
+            subject: item.subject?.name || "Unknown",
+            date: "Today",
+            time: `${item.startTime} - ${item.endTime}`,
+            status: displayStatus
+          };
+        });
+      }
 
       // Process History Records
       // Process History Records
@@ -179,12 +196,31 @@ export default function AttendanceHistoryScreen() {
           });
       }
 
+      // Helper to collapse holidays in history (one card per date)
+      const collapseHistoryHolidays = (recs) => {
+        const final = [];
+        const seenHolidays = new Set();
+        recs.forEach(r => {
+          if (r.isHoliday) {
+            const d = r.date || 'Unknown';
+            if (!seenHolidays.has(d)) {
+              seenHolidays.add(d);
+              final.push(r);
+            }
+          } else {
+            final.push(r);
+          }
+        });
+        return final;
+      };
+
+      const collapsedHistory = collapseHistoryHolidays(history);
       const percentage = statsRes.data?.overall?.percentage || 0;
 
       setAttendanceData({
         percentage: Math.round(parseFloat(percentage)),
         todayRecords: today,
-        historyRecords: history
+        historyRecords: collapsedHistory
       });
     } catch (error) {
       console.error("Error fetching attendance history:", error);

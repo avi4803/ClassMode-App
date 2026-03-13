@@ -123,7 +123,7 @@ const OtpVerificationScreen = () => {
                     <Text style={[
                       styles.resendButtonText, 
                       { color: colors.textPrimary },
-                      timer > 0 && { color: colors.textMuted || '#94a3b8' }
+                      timer > 0 && { color: colors.textSecondary || '#94a3b8' }
                     ]}>
                       Resend OTP
                     </Text>

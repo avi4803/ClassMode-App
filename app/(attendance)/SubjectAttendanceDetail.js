@@ -283,6 +283,26 @@ export default function SubjectAttendanceDetail() {
           return new Date(b.date) - new Date(a.date);
         });
 
+        // 4. Collapse Holidays: If multiple sessions on the same day are holidays, show only one card
+        const collapseHolidays = (recs) => {
+          const final = [];
+          const seenHolidays = new Set();
+          recs.forEach(r => {
+            if (r.isHoliday) {
+              const d = r.date || 'Unknown';
+              if (!seenHolidays.has(d)) {
+                seenHolidays.add(d);
+                final.push(r);
+              }
+            } else {
+              final.push(r);
+            }
+          });
+          return final;
+        };
+
+        const finalHistory = collapseHolidays(mappedHistory);
+
         const attended = (records || []).filter(r => r.status.toLowerCase() === 'present').length;
         const total = (records || []).length;
         const missed = Math.max(0, total - attended);
@@ -297,7 +317,7 @@ export default function SubjectAttendanceDetail() {
           attended: attended || initialAttended,
           missed: missed || (initialTotal - initialAttended),
           requiredToGoal: Math.max(0, Math.ceil(3 * (total || initialTotal) - 4 * (attended || initialAttended))),
-          history: mappedHistory
+          history: finalHistory
         });
       }
     } catch (error) {

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, Modal, TextInput, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, Modal, TextInput, Pressable, Image } from 'react-native';
 import { MaterialIcons } from "@expo/vector-icons";
 
 import ScreenWrapper from '../../src/components/common/ScreenWrapper';
@@ -221,7 +221,10 @@ const ProfileSetupScreen = () => {
         <OverlayBackButton/>
         <View style={styles.header}>
           <View style={styles.iconBox}>
-            <MaterialIcons name="school" size={48} color="#ffffff" />
+            <Image 
+              source={require('../../assets/logo.png')} 
+              style={styles.logoImage} 
+            />
           </View>
           <Text style={styles.title}>Complete your profile</Text>
           <Text style={styles.subtitle}>Help us personalize your experience.</Text>
@@ -305,11 +308,14 @@ const getStyles = (colors) => StyleSheet.create({
   iconBox: {
     width: 80,
     height: 80,
-    backgroundColor: colors.primary,
-    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
+  },
+  logoImage: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
   },
   title: {
     fontSize: 24,
