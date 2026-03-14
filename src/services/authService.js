@@ -90,17 +90,26 @@ const getDashboard = async (token) => {
   }
 };
 
-const uploadTimetableScan = async (token, imageUrl) => {
+const submitTimetableScan = async (token, data) => {
   try {
-    const response = await client.post('/ocr/process', {
-      imageUrl
-    }, {
-      headers: { 'x-access-token': token },
-      timeout: 300000 // 5 minutes
+    const response = await client.post('/ocr/submit', data, {
+      headers: { 'x-access-token': token }
     });
     return response.data;
   } catch (error) {
-    console.log("Upload Scan Error", error);
+    console.log("Submit Scan Error", error);
+    throw error.response ? error.response.data : { success: false, message: error.message || 'Network Error' };
+  }
+};
+
+const getOcrJobStatus = async (token, jobId) => {
+  try {
+    const response = await client.get(`/ocr/status/${jobId}`, {
+      headers: { 'x-access-token': token }
+    });
+    return response.data;
+  } catch (error) {
+    console.log("Get OCR Status Error", error);
     throw error.response ? error.response.data : { success: false, message: error.message || 'Network Error' };
   }
 };
@@ -130,19 +139,18 @@ const getSubjects = async (token) => {
 };
 
 const confirmTimetable = async (token, jobId, schedule) => {
-    try {
-      const response = await client.post(`/ocr/jobs/${jobId}/create-timetable`, {
-        schedule
-      }, {
-        headers: { 'x-access-token': token },
-        timeout: 300000 // 5 minutes
-      });
-      return response.data;
-    } catch (error) {
-      console.log("Confirm Timetable Error", error);
-      throw error.response ? error.response.data : { success: false, message: error.message || 'Network Error' };
-    }
-  };
+  try {
+    const response = await client.post(`/ocr/confirm/${jobId}`, {
+      schedule
+    }, {
+      headers: { 'x-access-token': token }
+    });
+    return response.data;
+  } catch (error) {
+    console.log("Confirm Timetable Error", error);
+    throw error.response ? error.response.data : { success: false, message: error.message || 'Network Error' };
+  }
+};
 
 const cancelClass = async (token, id, reason = "Faculty is on leave") => {
   try {
@@ -288,7 +296,8 @@ export default {
   getSections,
 
   getDashboard,
-  uploadTimetableScan,
+  submitTimetableScan,
+  getOcrJobStatus,
   confirmTimetable,
   addExtraClass,
   getSubjects,

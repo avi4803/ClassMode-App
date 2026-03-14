@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image, Alert, DeviceEventEmitter } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
@@ -29,8 +29,14 @@ export default function AddTimetableScreen() {
   const [ocrResults, setOcrResults] = useState(null);
   const [currentJobId, setCurrentJobId] = useState(null);
 
-  
   const { userData, userToken } = useContext(AuthContext);
+  const pollingInterval = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (pollingInterval.current) clearInterval(pollingInterval.current);
+    };
+  }, []);
 
   const SIZE_LIMIT = 1.5 * 1024 * 1024; // 1.5 MB
 
@@ -95,30 +101,61 @@ export default function AddTimetableScreen() {
         // 1. Upload to Cloudinary
         const secureUrl = await CloudinaryService.uploadFile(selectedFile, (percent) => {
             setProcessingStatus({ 
-                progress: 0.1 + (percent * 0.4), // Upload is first 50% of progress
+                progress: 0.1 + (percent * 0.3), // Upload is first 40% of progress
                 message: `Uploading... ${Math.round(percent * 100)}%` 
             });
         });
 
         console.log("Uploaded URL:", secureUrl);
-        setProcessingStatus({ progress: 0.5, message: 'Processing timetable...' });
+        setProcessingStatus({ progress: 0.4, message: 'Initiating scan...' });
 
-        // 2. Call OCR API (Step 1: Upload Scan)
+        // 2. Submit for OCR
         if (!userToken) throw new Error("Missing Authentication Token");
 
-        const result = await authService.uploadTimetableScan(userToken, secureUrl);
+        // Use IDs from userData
+        const payload = {
+            imageUrl: secureUrl,
+            batchId: userData?.batch?._id,
+            sectionId: userData?.section?._id
+        };
+
+        const submitRes = await authService.submitTimetableScan(userToken, payload);
+        const jobId = submitRes.data.jobId;
+        setCurrentJobId(jobId);
+
+        // 3. Start Polling
+        setProcessingStatus({ progress: 0.5, message: 'Processing in background...' });
         
-        console.log("OCR Result (Step 1):", result);
-        
-        setCurrentJobId(result.data.jobId);
-        setOcrResults(result.data.parsedTimetable);
-        
-        setProcessingStatus({ progress: 1.0, message: 'Finalizing...' });
-        setFlowState('results');
+        pollingInterval.current = setInterval(async () => {
+            try {
+                const statusRes = await authService.getOcrJobStatus(userToken, jobId);
+                const { status, result_data, error_message } = statusRes.data;
+
+                if (status === 'completed') {
+                    if (pollingInterval.current) clearInterval(pollingInterval.current);
+                    setOcrResults(result_data);
+                    setProcessingStatus({ progress: 1.0, message: 'Success!' });
+                    setFlowState('results');
+                } else if (status === 'failed') {
+                    if (pollingInterval.current) clearInterval(pollingInterval.current);
+                    Alert.alert("Scan Failed", error_message || "Server encountered an error processing the image");
+                    setFlowState('review_file');
+                } else {
+                    // Still processing or queued
+                    setProcessingStatus(prev => ({
+                        ...prev,
+                        message: status === 'queued' ? 'In queue...' : 'Analyzing timetable...'
+                    }));
+                }
+            } catch (pollError) {
+                console.error("Polling Error:", pollError);
+                // We keep polling unless it's a critical error
+            }
+        }, 3000);
 
     } catch (error) {
         console.error("Processing Error:", error);
-        Alert.alert("Error", error.message || "Failed to process timetable");
+        Alert.alert("Error", error.message || "Failed to start processing");
         setFlowState('review_file'); 
     }
   };
@@ -188,7 +225,7 @@ export default function AddTimetableScreen() {
     );
   }
 
-  if (flowState === 'processing') return <ProcessingState fileName={selectedFile?.name || 'Timetable_Scan.jpg'} progress={processingStatus.progress} statusMessage={processingStatus.message} />;
+  if (flowState === 'processing') return <ProcessingState fileName={selectedFile?.name || selectedFile?.uri?.split('/').pop() || 'Timetable_Scan.jpg'} progress={processingStatus.progress} statusMessage={processingStatus.message} />;
   if (flowState === 'results') return <ReviewResults data={ocrResults} onBack={() => setFlowState('menu')} onVerify={handleConfirmTimetable} />;
 
   return (

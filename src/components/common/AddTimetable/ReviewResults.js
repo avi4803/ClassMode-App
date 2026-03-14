@@ -49,6 +49,18 @@ export const ReviewResults = ({ data, onBack, onVerify }) => {
     item.day.startsWith(selectedDay) 
   );
 
+  // Merge unique scanned names into the dropdown options
+  const mergedSubjects = [...subjects];
+  const scannedNames = [...new Set(localSchedule.map(s => s.subject).filter(Boolean))];
+  
+  scannedNames.forEach(name => {
+      // If this name doesn't exist as an ID or Label in official subjects, add it as a temporary option
+      const exists = subjects.some(s => s.value === name || s.label === name);
+      if (!exists) {
+          mergedSubjects.push({ label: name, value: name, isTemporary: true });
+      }
+  });
+
   const updateClass = (originalIndex, field, value) => {
       setLocalSchedule(prev => {
           const updated = [...prev];
@@ -148,7 +160,7 @@ export const ReviewResults = ({ data, onBack, onVerify }) => {
               <ResultCard 
                 key={index}
                 item={item}
-                subjects={subjects}
+                subjects={mergedSubjects}
                 updateClass={updateClass}
                 onDelete={() => deleteClass(item.originalIndex)}
                 lowConfidence={false} 
