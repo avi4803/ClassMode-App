@@ -1,9 +1,15 @@
 name: Android Production Build
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+    inputs:
+      build_target:
+        description: 'Build Target'
+        required: true
+        default: 'apk'
+        type: choice
+        options:
+          - apk
+          - aab
 
 jobs:
   build:
@@ -40,20 +46,29 @@ jobs:
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > ${{ github.workspace }}/android/app/release.keystore
 
-      - name: 🚀 Build Release AAB
+      - name: 🚀 Build Android (${{ github.event.inputs.build_target }})
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew bundleRelease \
-            -Pandroid.injected.signing.store.file=${{ github.workspace }}/android/app/release.keystore \
-            -Pandroid.injected.signing.store.password=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
-            -Pandroid.injected.signing.key.alias=${{ secrets.ANDROID_KEY_ALIAS }} \
-            -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }} \
-            --no-daemon
+          if [ "${{ github.event.inputs.build_target }}" == "apk" ]; then
+            ./gradlew assembleRelease \
+              -Pandroid.injected.signing.store.file=${{ github.workspace }}/android/app/release.keystore \
+              -Pandroid.injected.signing.store.password=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+              -Pandroid.injected.signing.key.alias=${{ secrets.ANDROID_KEY_ALIAS }} \
+              -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }} --no-daemon
+          else
+            ./gradlew bundleRelease \
+              -Pandroid.injected.signing.store.file=${{ github.workspace }}/android/app/release.keystore \
+              -Pandroid.injected.signing.store.password=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+              -Pandroid.injected.signing.key.alias=${{ secrets.ANDROID_KEY_ALIAS }} \
+              -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }} --no-daemon
+          fi
 
-      - name: 📤 Upload Production AAB
+      - name: 📤 Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: classmode-production-aab
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          name: classmode-build-${{ github.event.inputs.build_target }}
+          path: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/bundle/release/*.aab
           retention-days: 7

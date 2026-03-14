@@ -54,7 +54,7 @@ export default function DashboardScreen() {
     
     // Transform User Data
     const userData = {
-      name: user.name?.split(' ')[0] || "Student",
+      name: user.name?.trim().split(' ')[0] || "Student",
       section: user.section?.name || "-",
       batch: user.batch?.year || "-"
     };
